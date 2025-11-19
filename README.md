@@ -1,6 +1,6 @@
 # *TROPHY THREADS MOBILE*
 Tautan APK &rarr; \
-Design figma &rarr;
+Design figma &rarr; https://www.figma.com/design/PEssCNAbaWalAbCoNzPkmj/TrophyThreads?node-id=0-1&t=w2I8nZc6TkE6BZre-1
 
 ## Nama Anggota Kelompok
 - 2406435830 - Samuel Marcelino Tindaon
