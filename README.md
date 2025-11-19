@@ -52,11 +52,11 @@ Trophy Threads adalah aplikasi yang dirancang untuk para penggemar sepak bola ag
 - Hak akses: User, Admin
   
 5. Modul keranjang : Gusti Niera Fitri Alifa
-- Menyediakan tempat sementara untuk menampung item (merchandise) sebelum checkout dan untuk memfasilitasi perubahan kuantitas, memilih variasi, dan perhitungan harga. 
+- Menyediakan tempat sementara untuk menampung item (merchandise) sebelum checkout dan untuk memfasilitasi perubahan kuantitas dan perhitungan harga. 
 - Fitur Utama
   a. Create = Menambah item ke keranjang dan membuat pesanan
   b. Read = Menampilkan detail produk yang dimasukkan ke keranjang, informasi pengiriman, rincian pembayaran, dan metode pembayaran.
-  c. Update = Mengubah variasi dan kuantitas dari produk yang dipilih.
+  c. Update = Mengubah kuantitas dari produk yang dipilih.
   d. Delete = Menghapus produk yang ada di keranjang
 - Hak akses: User
 
@@ -88,3 +88,9 @@ Trophy Threads adalah aplikasi yang dirancang untuk para penggemar sepak bola ag
 - Memantau aktivitas forum.
 
 ## Proses Integrasi
+- Modul Informasi Pertandingan: 
+- Modul Penjualan Produk: 
+- Modul Review Produk: 
+- Modul Forum Diskusi: 
+- Modul Keranjang: 
+- Modul Favorit: 
