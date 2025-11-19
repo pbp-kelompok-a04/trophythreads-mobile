@@ -88,6 +88,21 @@ Trophy Threads adalah aplikasi yang dirancang untuk para penggemar sepak bola ag
 - Memantau aktivitas forum.
 
 ## Proses Integrasi
+*Keperluan Aplikasi*
+   - Aplikasi membutuhkan data user, produk, forum, dan informasi pertandingan yang disediakan oleh web. Kami menggunakan format data JSON sebagai komunikasi antar aplikasi dan server. Aplikasi akan menyesuaikan dengan endpoint yang sudah ada pada web yang sudah dibuat. 
+
+*Menghubungkan Flutter dengan Django*
+   - Aplikasi Flutter akan mengirim request ataupun post JSON ke server Django. Django pun akan memberikan respons dalam format JSON. 
+
+*Validasi Endpoint & JSON dari Web*
+   - Endpoint dan JSON yang diterima dari server akan divalidasi formatnya melalui aplikasi Postman dan dievaluasi apakah sudah bisa diintegrasikan dengan aplikasi. Penyesuaian model juga akan dibuat pada aplikasi berdasarkan format JSON yang diterima dari web melalui Quicktype untuk menghasilkan class custom dengan business logic yang sesuai dengan models pada Django.
+
+*Konfigurasi UI*
+   - UI akan dibuat sesuai dengan ketentuan dan dimensi aplikasi mobile. UI akan bersifat dinamis agar bisa menyesuaikan dengan ukuran mobile berbeda. M
+
+*Deployment*
+   - Melakukan Flutter deployment dan konfigurasi CI/CD menggunakan GitHub actions & Bitrise.
+\
 - Modul Informasi Pertandingan: 
 - Modul Penjualan Produk: 
 - Modul Review Produk: 
