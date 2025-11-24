@@ -38,7 +38,7 @@ Trophy Threads adalah aplikasi yang dirancang untuk para penggemar sepak bola ag
 - Fitur Utama
   a. Create = Aktif user (hanya yang pernah membeli produk) dapat membuat review: rating (1–5), deskripsi, dan tanggal pembelian (otomatis jika terhubung ke order).
   b. Read = Tampilan ringkasan serta sorting top positive / critical reviews.
-  c. Update = Penulis review dapat mengedit review sendiri (batas waktu atau tanpa batas tapi tampilkan edit history).
+  c. Update = Penulis review dapat mengedit review sendiri (tanpa batas waktu).
   d. Delete = User dapat menghapus review sendiri.
 - Hak akses: User dan Seller
   
