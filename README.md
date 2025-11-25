@@ -1,6 +1,6 @@
 # *TROPHY THREADS MOBILE*
 Tautan APK &rarr; \
-Design figma &rarr; https://www.figma.com/design/PEssCNAbaWalAbCoNzPkmj/TrophyThreads?node-id=0-1&t=w2I8nZc6TkE6BZre-1
+Design figma &rarr; https://www.figma.com/design/PEssCNAbaWalAbCoNzPkmj/TrophyThreads?node-id=0-1&t=w2I8nZc6TkE6BZre-1 \
 Timeline & Planning &rarr; https://docs.google.com/spreadsheets/d/1Xz-XjHQy6vWqbUHOe2V1ny_dZjjJ8BDWaOCkafkrsaE/edit?usp=sharing
 
 ## Nama Anggota Kelompok
