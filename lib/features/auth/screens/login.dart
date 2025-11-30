@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trophythreads_mobile/features/auth/models/profile.dart';
 import 'package:trophythreads_mobile/main.dart';
 import 'package:trophythreads_mobile/features/auth/screens/register.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
@@ -18,9 +19,7 @@ class LoginApp extends StatelessWidget {
       title: 'Masuk',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFED3F27),
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFED3F27)),
       ),
       home: const LoginPage(),
     );
@@ -50,6 +49,12 @@ class _LoginPageState extends State<LoginPage> {
     await prefs.setBool('is_guest', isGuest);
   }
 
+  // Helper method to set the user's role
+  static Future<void> setUserRole(String role) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_role', role);
+  }
+
   // Show guest restriction dialog
   static void showGuestRestriction(BuildContext context, String feature) {
     showDialog(
@@ -58,7 +63,7 @@ class _LoginPageState extends State<LoginPage> {
         title: const Text('Akses Terbatas'),
         content: Text(
           'Maaf, fitur $feature tidak tersedia untuk pengguna Guest. '
-          'Silakan daftar atau masuk untuk menggunakan fitur ini.'
+          'Silakan daftar atau masuk untuk menggunakan fitur ini.',
         ),
         actions: [
           TextButton(
@@ -83,7 +88,10 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // Check if action is allowed (use this before any restricted action)
-  static Future<bool> canPerformAction(BuildContext context, String action) async {
+  static Future<bool> canPerformAction(
+    BuildContext context,
+    String action,
+  ) async {
     bool isGuestUser = await isGuest();
     if (isGuestUser) {
       showGuestRestriction(context, action);
@@ -97,9 +105,7 @@ class _LoginPageState extends State<LoginPage> {
     final request = context.watch<CookieRequest>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Masuk'),
-      ),
+      appBar: AppBar(title: const Text('Masuk')),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
@@ -123,9 +129,7 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 8.0),
                   const Text(
                     'Selamat Datang di Trophy Threads!',
-                    style: TextStyle(
-                      fontSize: 14.0,
-                    ),
+                    style: TextStyle(fontSize: 14.0),
                   ),
                   const SizedBox(height: 30.0),
                   TextField(
@@ -136,8 +140,10 @@ class _LoginPageState extends State<LoginPage> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(12.0)),
                       ),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12.0,
+                        vertical: 8.0,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12.0),
@@ -149,8 +155,10 @@ class _LoginPageState extends State<LoginPage> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(12.0)),
                       ),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12.0,
+                        vertical: 8.0,
+                      ),
                     ),
                     obscureText: true,
                   ),
@@ -164,31 +172,33 @@ class _LoginPageState extends State<LoginPage> {
                       // TODO: Change the URL and don't forget to add trailing slash (/) at the end of URL!
                       // To connect Android emulator with Django on localhost, use URL http://10.0.2.2/
                       // If you using chrome,  use URL http://localhost:8000
-                      final response = await request
-                          .login("http://localhost:8000/auth/login/", {
-                        'username': username,
-                        'password': password,
-                      });
+                      final response = await request.login(
+                        "http://localhost:8000/auth/login/",
+                        {'username': username, 'password': password},
+                      );
 
                       if (request.loggedIn) {
-                        String message = response['message'];
-                        String uname = response['username'];
-                        
+                        final userProfile = UserProfile.fromJson(response);
+
                         // Set guest status to false for regular login
                         await setGuestStatus(false);
-                        
+                        await setUserRole(userProfile.role);
+
                         if (context.mounted) {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => MyHomePage()),
+                              builder: (context) => MyHomePage(),
+                            ),
                           );
                           ScaffoldMessenger.of(context)
                             ..hideCurrentSnackBar()
                             ..showSnackBar(
                               SnackBar(
-                                  content:
-                                      Text("$message Selamat datang, $uname.")),
+                                content: Text(
+                                  "${userProfile.message} Selamat datang, ${userProfile.username}.",
+                                ),
+                              ),
                             );
                         }
                       } else {
@@ -220,15 +230,12 @@ class _LoginPageState extends State<LoginPage> {
                     child: const Text('Masuk'),
                   ),
                   const SizedBox(height: 24.0),
-                  
+
                   // Text dengan link untuk Daftar dan Tamu
                   RichText(
                     textAlign: TextAlign.center,
                     text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 16.0,
-                        color: Colors.grey[700],
-                      ),
+                      style: TextStyle(fontSize: 16.0, color: Colors.grey[700]),
                       children: [
                         const TextSpan(text: 'Tidak punya akun? '),
                         WidgetSpan(
@@ -257,18 +264,21 @@ class _LoginPageState extends State<LoginPage> {
                             onTap: () async {
                               // Set guest status to true
                               await setGuestStatus(true);
-                              
+
                               if (context.mounted) {
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (context) => MyHomePage()),
+                                    builder: (context) => MyHomePage(),
+                                  ),
                                 );
                                 ScaffoldMessenger.of(context)
                                   ..hideCurrentSnackBar()
                                   ..showSnackBar(
                                     const SnackBar(
-                                      content: Text("Masuk sebagai Tamu. Anda dapat melihat-lihat tetapi tidak dapat melakukan transaksi, menambah favorit, atau berkomentar."),
+                                      content: Text(
+                                        "Masuk sebagai Tamu. Anda dapat melihat-lihat tetapi tidak dapat melakukan transaksi, menambah favorit, atau berkomentar.",
+                                      ),
                                       duration: Duration(seconds: 4),
                                     ),
                                   );
