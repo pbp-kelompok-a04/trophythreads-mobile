@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:trophythreads_mobile/features/auth/screens/login.dart';
+import 'package:trophythreads_mobile/features/merchandise/screens/merchandise_detail.dart';
 
 void main() {
   runApp(const MyApp());
@@ -47,7 +48,7 @@ class MyApp extends StatelessWidget {
             onError: Colors.white,
           ),
         ),
-        home: const LoginPage(),
+        home: ProductDetailPage(),
       ),
     );
   }
