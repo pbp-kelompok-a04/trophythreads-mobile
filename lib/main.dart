@@ -51,12 +51,11 @@ class MyApp extends StatelessWidget {
         home: const LoginPage(),
       ),
     );
-    
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, this.title = 'Flutter Demo Home Page'});
+  const MyHomePage({super.key, this.title = 'Flutter Demo Home Page'}); 
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
