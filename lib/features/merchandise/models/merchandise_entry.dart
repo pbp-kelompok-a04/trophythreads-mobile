@@ -1,7 +1,7 @@
 // To parse this JSON data, do
 //
 //     final merchandiseEntry = merchandiseEntryFromJson(jsonString);
-
+// merchandise/screens/merchandise_detail.dart
 import 'dart:convert';
 
 List<MerchandiseEntry> merchandiseEntryFromJson(String str) => List<MerchandiseEntry>.from(json.decode(str).map((x) => MerchandiseEntry.fromJson(x)));
