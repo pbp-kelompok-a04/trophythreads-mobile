@@ -182,7 +182,6 @@ class _FavoriteCardState extends State<FavoriteCard> {
   }
 
   Widget _buildRating() {
-    // Rating dummy untuk desain
     const rating = 4;
     const totalReviews = 120;
     
@@ -209,7 +208,6 @@ class _FavoriteCardState extends State<FavoriteCard> {
   }
 
   Widget _buildStock() {
-    // Stock status dummy untuk desain
     return Row(
       children: [
         Container(

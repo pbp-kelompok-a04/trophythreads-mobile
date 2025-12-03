@@ -20,7 +20,6 @@ class _FavoritesPageState extends State<FavoritesPage> {
   }
 
   void _loadDummyData() {
-    // Data dummy untuk testing UI
     favorites = [
       Favorite(
         favoriteId: '1',
