@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/merchandise_entry.dart';
+import 'package:trophythreads_mobile/features/review/screens/review_list_page.dart';
 
 
 class ProductDetailPage extends StatefulWidget {
@@ -211,17 +212,36 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Widget _buildReviews() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Customer Reviews', style: TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        _buildSingleReview('Alice', 5, 'Great shirt — fits well and looks premium.'),
-        const SizedBox(height: 8),
-        _buildSingleReview('Bob', 4, 'Good quality, color was slightly different than photos.'),
-      ],
-    );
-  }
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text('Customer Reviews', style: TextStyle(fontWeight: FontWeight.w600)),
+          TextButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ReviewListPage(
+                    productId: 'product-123', // Dummy ID
+                    productName: 'Stylish Casual Shirt', // Nama product
+                  ),
+                ),
+              );
+            },
+            child: const Text('See All Reviews →'),
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      _buildSingleReview('Alice', 5, 'Great shirt — fits well and looks premium.'),
+      const SizedBox(height: 8),
+      _buildSingleReview('Bob', 4, 'Good quality, color was slightly different than photos.'),
+    ],
+  );
+}
 
   Widget _buildSingleReview(String author, int rating, String text) {
     return Row(
