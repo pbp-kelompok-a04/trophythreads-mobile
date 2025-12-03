@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:trophythreads_mobile/features/cart/screens/cart_list.dart';
 import '../models/merchandise_entry.dart';
-
 
 class ProductDetailPage extends StatefulWidget {
   const ProductDetailPage({Key? key}) : super(key: key);
@@ -30,6 +30,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           IconButton(
             icon: Icon(_isFavorite ? Icons.favorite : Icons.favorite_border),
             onPressed: () => setState(() => _isFavorite = !_isFavorite),
+          ),
+          // Di AppBar ProductDetailPage atau MerchandisePage
+          IconButton(
+            icon: Badge(child: Icon(Icons.shopping_cart)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartPage()),
+              );
+            },
           ),
         ],
       ),
@@ -82,7 +92,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     if (progress == null) return child;
                     return const Center(child: CircularProgressIndicator());
                   },
-                  errorBuilder: (context, error, stack) => const Center(child: Icon(Icons.broken_image, size: 48)),
+                  errorBuilder: (context, error, stack) =>
+                      const Center(child: Icon(Icons.broken_image, size: 48)),
                 ),
               );
             },
@@ -133,9 +144,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: const [
-            Text('\$79.99', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(
+              '\$79.99',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
             SizedBox(height: 4),
-            Text('\$129.99', style: TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough)),
+            Text(
+              '\$129.99',
+              style: TextStyle(
+                color: Colors.grey,
+                decoration: TextDecoration.lineThrough,
+              ),
+            ),
           ],
         ),
       ],
@@ -160,8 +180,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (i) {
-        if (i < full) return const Icon(Icons.star, size: 18, color: Colors.orange);
-        if (i == full && half) return const Icon(Icons.star_half, size: 18, color: Colors.orange);
+        if (i < full)
+          return const Icon(Icons.star, size: 18, color: Colors.orange);
+        if (i == full && half)
+          return const Icon(Icons.star_half, size: 18, color: Colors.orange);
         return const Icon(Icons.star_border, size: 18, color: Colors.orange);
       }),
     );
@@ -181,7 +203,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           child: Row(
             children: [
               IconButton(
-                onPressed: () => setState(() => _quantity = (_quantity > 1) ? _quantity - 1 : 1),
+                onPressed: () => setState(
+                  () => _quantity = (_quantity > 1) ? _quantity - 1 : 1,
+                ),
                 icon: const Icon(Icons.remove),
               ),
               Text('$_quantity', style: const TextStyle(fontSize: 16)),
@@ -214,11 +238,22 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Customer Reviews', style: TextStyle(fontWeight: FontWeight.w600)),
+        const Text(
+          'Customer Reviews',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 8),
-        _buildSingleReview('Alice', 5, 'Great shirt — fits well and looks premium.'),
+        _buildSingleReview(
+          'Alice',
+          5,
+          'Great shirt — fits well and looks premium.',
+        ),
         const SizedBox(height: 8),
-        _buildSingleReview('Bob', 4, 'Good quality, color was slightly different than photos.'),
+        _buildSingleReview(
+          'Bob',
+          4,
+          'Good quality, color was slightly different than photos.',
+        ),
       ],
     );
   }
@@ -235,9 +270,21 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             children: [
               Row(
                 children: [
-                  Text(author, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    author,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(width: 8),
-                  Row(children: List.generate(rating, (_) => const Icon(Icons.star, size: 14, color: Colors.orange))),
+                  Row(
+                    children: List.generate(
+                      rating,
+                      (_) => const Icon(
+                        Icons.star,
+                        size: 14,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
@@ -255,7 +302,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
+          ],
         ),
         child: Row(
           children: [
@@ -270,20 +319,32 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               child: ElevatedButton(
                 onPressed: () {
                   // add to cart logic
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to cart')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Added to cart')),
+                  );
                 },
                 child: const Text('Add to cart'),
-                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
               ),
             ),
             const SizedBox(width: 12),
             ElevatedButton(
               onPressed: () {
                 // buy now logic
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Proceed to buy')));
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Proceed to buy')));
               },
               child: const Text('Buy now'),
-              style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14), backgroundColor: Colors.orange),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
+                backgroundColor: Colors.orange,
+              ),
             ),
           ],
         ),
