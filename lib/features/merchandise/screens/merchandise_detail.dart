@@ -4,7 +4,7 @@ import 'package:trophythreads_mobile/features/review/screens/review_list_page.da
 
 
 class ProductDetailPage extends StatefulWidget {
-  const ProductDetailPage({Key? key}) : super(key: key);
+  const ProductDetailPage({Key? key, required merchandise}) : super(key: key);
 
   @override
   State<ProductDetailPage> createState() => _ProductDetailPageState();
