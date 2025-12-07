@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import '../models/match_entry.dart';
+import 'package:trophythreads_mobile/features/match_info/models/match_entry.dart';
+import 'package:provider/provider.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:trophythreads_mobile/features/match_info/screens/match_entry_list.dart';
+import 'dart:convert';
 
 class MatchFormPage extends StatefulWidget {
   const MatchFormPage({super.key});
@@ -18,7 +22,7 @@ class _MatchFormPageState extends State<MatchFormPage> {
   Team _awayTeam = Team(name: '', flag: '');
   int _homeScore = 0;
   int _awayScore = 0;
-  
+
   final TextEditingController _dateController = TextEditingController();
 
   // dummy sementara untuk mengecek team
@@ -61,6 +65,7 @@ class _MatchFormPageState extends State<MatchFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final request = context.watch<CookieRequest>();
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -210,7 +215,9 @@ class _MatchFormPageState extends State<MatchFormPage> {
                                   controller: _dateController,
                                   readOnly: true,
                                   decoration: InputDecoration(
-                                    prefixIcon: const Icon(Icons.calendar_today),
+                                    prefixIcon: const Icon(
+                                      Icons.calendar_today,
+                                    ),
                                     hintText: "DD-MM-YYYY",
                                     hintStyle: TextStyle(
                                       color: Color(0xFFBDBDBD),
@@ -346,48 +353,47 @@ class _MatchFormPageState extends State<MatchFormPage> {
                                   },
                                   // mengembalikan widget TextFormField sebagai field input
                                   // biar bisa validasi dan mengatur desainnya
-                                  fieldViewBuilder:
-                                      (context, controller, focusNode, _) {
-                                        return TextFormField(
-                                          controller: controller,
-                                          focusNode: focusNode,
-                                          decoration: InputDecoration(
-                                            hintText: "Masukkan Tim Kandang...",
-                                            hintStyle: TextStyle(
-                                              color: Color(0xFFBDBDBD),
-                                            ),
-                                            enabledBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                color: Color(0xE6E6E6E6),
-                                                width: 1.5,
-                                              ),
-                                            ),
-                                            focusedBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.secondary,
-                                                width: 2.0,
-                                              ),
-                                            ),
+                                  fieldViewBuilder: (context, controller, focusNode, _) {
+                                    return TextFormField(
+                                      controller: controller,
+                                      focusNode: focusNode,
+                                      decoration: InputDecoration(
+                                        hintText: "Masukkan Tim Kandang...",
+                                        hintStyle: TextStyle(
+                                          color: Color(0xFFBDBDBD),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color: Color(0xE6E6E6E6),
+                                            width: 1.5,
                                           ),
-                                          validator: (String? value) {
-                                            if (value == null ||
-                                                value.isEmpty) {
-                                              return 'Tim kandang tidak boleh kosong!';
-                                            }
-                                            // jika tim tidak ada di daftar availableTeams
-                                            bool valid = availableTeams.any(
-                                              (team) =>
-                                                  team.name.toLowerCase() == value.toLowerCase(),
-                                            );
-                                            if (!valid) {
-                                              return 'Tim kandang tidak ditemukan!';
-                                            }
-                                            return null;
-                                          },
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.secondary,
+                                            width: 2.0,
+                                          ),
+                                        ),
+                                      ),
+                                      validator: (String? value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Tim kandang tidak boleh kosong!';
+                                        }
+                                        // jika tim tidak ada di daftar availableTeams
+                                        bool valid = availableTeams.any(
+                                          (team) =>
+                                              team.name.toLowerCase() ==
+                                              value.toLowerCase(),
                                         );
+                                        if (!valid) {
+                                          return 'Tim kandang tidak ditemukan!';
+                                        }
+                                        return null;
                                       },
+                                    );
+                                  },
                                 ),
                                 SizedBox(height: 16),
                                 // input home score
@@ -416,7 +422,8 @@ class _MatchFormPageState extends State<MatchFormPage> {
                                   ),
                                   onChanged: (String? value) {
                                     setState(() {
-                                      _homeScore = int.tryParse(value ?? '') ?? 0;
+                                      _homeScore =
+                                          int.tryParse(value ?? '') ?? 0;
                                     });
                                   },
                                   validator: (String? value) {
@@ -459,7 +466,8 @@ class _MatchFormPageState extends State<MatchFormPage> {
                                   ),
                                   onChanged: (String? value) {
                                     setState(() {
-                                      _awayScore = int.tryParse(value ?? '') ?? 0;
+                                      _awayScore =
+                                          int.tryParse(value ?? '') ?? 0;
                                     });
                                   },
                                   validator: (String? value) {
@@ -506,48 +514,47 @@ class _MatchFormPageState extends State<MatchFormPage> {
                                   },
                                   // mengembalikan widget TextFormField sebagai field input
                                   // biar bisa validasi dan mengatur desainnya
-                                  fieldViewBuilder:
-                                      (context, controller, focusNode, _) {
-                                        return TextFormField(
-                                          controller: controller,
-                                          focusNode: focusNode,
-                                          decoration: InputDecoration(
-                                            hintText: "Masukkan Tim Tandang...",
-                                            hintStyle: TextStyle(
-                                              color: Color(0xFFBDBDBD),
-                                            ),
-                                            enabledBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                color: Color(0xE6E6E6E6),
-                                                width: 1.5,
-                                              ),
-                                            ),
-                                            focusedBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.secondary,
-                                                width: 2.0,
-                                              ),
-                                            ),
+                                  fieldViewBuilder: (context, controller, focusNode, _) {
+                                    return TextFormField(
+                                      controller: controller,
+                                      focusNode: focusNode,
+                                      decoration: InputDecoration(
+                                        hintText: "Masukkan Tim Tandang...",
+                                        hintStyle: TextStyle(
+                                          color: Color(0xFFBDBDBD),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color: Color(0xE6E6E6E6),
+                                            width: 1.5,
                                           ),
-                                          validator: (String? value) {
-                                            if (value == null ||
-                                                value.isEmpty) {
-                                              return 'Tim tandang tidak boleh kosong!';
-                                            }
-                                            // jika tim tidak ada di daftar availableTeams
-                                            bool valid = availableTeams.any(
-                                              (team) =>
-                                                  team.name.toLowerCase() == value.toLowerCase(),
-                                            );
-                                            if (!valid) {
-                                              return 'Tim tandang tidak ditemukan!';
-                                            }
-                                            return null;
-                                          },
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.secondary,
+                                            width: 2.0,
+                                          ),
+                                        ),
+                                      ),
+                                      validator: (String? value) {
+                                        if (value == null || value.isEmpty) {
+                                          return 'Tim tandang tidak boleh kosong!';
+                                        }
+                                        // jika tim tidak ada di daftar availableTeams
+                                        bool valid = availableTeams.any(
+                                          (team) =>
+                                              team.name.toLowerCase() ==
+                                              value.toLowerCase(),
                                         );
+                                        if (!valid) {
+                                          return 'Tim tandang tidak ditemukan!';
+                                        }
+                                        return null;
                                       },
+                                    );
+                                  },
                                 ),
 
                                 SizedBox(height: 15),
@@ -566,44 +573,53 @@ class _MatchFormPageState extends State<MatchFormPage> {
                                               ).colorScheme.secondary,
                                             ),
                                       ),
-                                      onPressed: () {
+                                      onPressed: () async {
                                         if (_formKey.currentState!.validate()) {
-                                          showDialog(
-                                            context: context,
-                                            builder: (context) {
-                                              return AlertDialog(
-                                                title: const Text('Pertandingan berhasil disimpan!'),
-                                                content: SingleChildScrollView(
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text('Judul: $_title'),
-                                                      Text('Tanggal: ${_dateController.text}'),
-                                                      Text('Kota: $_city'),
-                                                      Text('Negara: $_country'),
-                                                      Text('Tim Kandang: ${_homeTeam.name}'),
-                                                      Text('Skor Kandang: $_homeScore'),
-                                                      Text('Tim Tandang: ${_awayTeam.name}'),
-                                                      Text('Skor Tandang: $_awayScore'),
-                                                    ],
+                                          final response = await request.postJson(
+                                            "http://localhost:8000/create-flutter/",
+                                            jsonEncode({
+                                              "title": _title,
+                                              "date": _time.toIso8601String(),
+                                              "city": _city,
+                                              "country": _country,
+                                              "home_team": _homeTeam.name,
+                                              "away_team": _awayTeam.name,
+                                              "score_home": _homeScore,
+                                              "score_away": _awayScore,
+                                              "views": 0,
+                                            }),
+                                          );
+                                          if (context.mounted) {
+                                            if (response['status'] ==
+                                                'success') {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    "Match successfully saved!",
                                                   ),
                                                 ),
-                                                actions: [
-                                                  TextButton(
-                                                    child: const Text('OK'),
-                                                    onPressed: () {
-                                                      Navigator.pop(context);
-                                                      setState(() {
-                                                        _formKey.currentState!.reset();
-                                                        _homeTeam = Team(name: '', flag: '');
-                                                        _awayTeam = Team(name: '', flag: '');
-                                                      });
-                                                    },
-                                                  ),
-                                                ],
                                               );
-                                            },
-                                          );
+                                              Navigator.pushReplacement(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      MatchEntryListPage(),
+                                                ),
+                                              );
+                                            } else {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    "Something went wrong, please try again.",
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          }
                                         }
                                       },
                                       child: const Text(
