@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
 import '../models/cart_entry.dart';
+import '../services/cart_service.dart';
 
 class CartItemCard extends StatefulWidget {
   final CartItem cartItem;
@@ -22,6 +25,7 @@ class CartItemCard extends StatefulWidget {
 class _CartItemCardState extends State<CartItemCard> {
   late int _quantity;
   late bool _isSelected;
+  bool _isUpdating = false;
 
   // sizing constants
   static const double _imageSize = 110;
@@ -30,46 +34,126 @@ class _CartItemCardState extends State<CartItemCard> {
   @override
   void initState() {
     super.initState();
-    _quantity = widget.cartItem.fields.quantity;
-    _isSelected = widget.cartItem.fields.selected;
+    _quantity = widget.cartItem.quantity;
+    _isSelected = widget.cartItem.selected;
   }
 
   @override
   void didUpdateWidget(covariant CartItemCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     // sync local state if model changed externally
-    if (oldWidget.cartItem.pk != widget.cartItem.pk ||
-        oldWidget.cartItem.fields.quantity != widget.cartItem.fields.quantity) {
-      _quantity = widget.cartItem.fields.quantity;
+    if (oldWidget.cartItem.id != widget.cartItem.id ||
+        oldWidget.cartItem.quantity != widget.cartItem.quantity) {
+      _quantity = widget.cartItem.quantity;
     }
-    if (oldWidget.cartItem.fields.selected != widget.cartItem.fields.selected) {
-      _isSelected = widget.cartItem.fields.selected;
-    }
-  }
-
-  void _decrementQuantity() {
-    if (_quantity > 1) {
-      setState(() {
-        _quantity--;
-      });
-      widget.onQuantityChanged(_quantity);
+    if (oldWidget.cartItem.selected != widget.cartItem.selected) {
+      _isSelected = widget.cartItem.selected;
     }
   }
 
-  void _incrementQuantity() {
-    final stock = (widget.cartItem.fields.productStock ?? 0) as int;
-    if (_quantity < stock) {
-      setState(() {
-        _quantity++;
-      });
-      widget.onQuantityChanged(_quantity);
-    } else {
+  Future<void> _decrementQuantity() async {
+    if (_isUpdating || _quantity <= 0) return;
+
+    setState(() => _isUpdating = true);
+
+    final request = context.read<CookieRequest>();
+
+    try {
+      final response = await CartService.updateQuantity(
+        request,
+        widget.cartItem.id,
+        'dec',
+      );
+
+      if (response['success'] == true) {
+        if (response['quantity'] == 0) {
+          // Item was deleted
+          widget.onDelete();
+        } else {
+          setState(() => _quantity = response['quantity']);
+          widget.onQuantityChanged(response['quantity']);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['error'] ?? 'Gagal mengupdate jumlah'),
+              backgroundColor: const Color(0xFFE93C49),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: const Color(0xFFE93C49),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdating = false);
+      }
+    }
+  }
+
+  Future<void> _incrementQuantity() async {
+    if (_isUpdating) return;
+
+    final stock = widget.cartItem.product.stock;
+    if (_quantity >= stock) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Stok tidak mencukupi'),
           duration: Duration(seconds: 2),
         ),
       );
+      return;
+    }
+
+    setState(() => _isUpdating = true);
+
+    final request = context.read<CookieRequest>();
+
+    try {
+      final response = await CartService.updateQuantity(
+        request,
+        widget.cartItem.id,
+        'inc',
+      );
+
+      if (response['success'] == true) {
+        setState(() => _quantity = response['quantity']);
+        widget.onQuantityChanged(response['quantity']);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['error'] ?? 'Gagal mengupdate jumlah'),
+              backgroundColor: const Color(0xFFE93C49),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: const Color(0xFFE93C49),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdating = false);
+      }
     }
   }
 
@@ -88,11 +172,11 @@ class _CartItemCardState extends State<CartItemCard> {
 
   @override
   Widget build(BuildContext context) {
-    final fields = widget.cartItem.fields;
-    final productName = (fields.productName ?? 'Unknown Product') as String;
-    final productPrice = (fields.productPrice ?? 0) as int;
-    final productThumbnail = (fields.productThumbnail ?? '') as String;
-    final productStock = (fields.productStock ?? 0) as int;
+    final product = widget.cartItem.product;
+    final productName = product.name;
+    final productPrice = product.price;
+    final productThumbnail = product.thumbnail;
+    final productStock = product.stock;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -241,17 +325,21 @@ class _CartItemCardState extends State<CartItemCard> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 InkWell(
-                                  onTap: _decrementQuantity,
+                                  onTap: _isUpdating
+                                      ? null
+                                      : _decrementQuantity,
                                   borderRadius: BorderRadius.circular(6),
-                                  child: const Padding(
-                                    padding: EdgeInsets.symmetric(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
                                       horizontal: 10,
                                       vertical: 8,
                                     ),
                                     child: Icon(
                                       Icons.remove,
                                       size: 16,
-                                      color: Color(0xFFE93C49),
+                                      color: _isUpdating
+                                          ? Colors.grey
+                                          : const Color(0xFFE93C49),
                                     ),
                                   ),
                                 ),
@@ -259,26 +347,38 @@ class _CartItemCardState extends State<CartItemCard> {
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
                                   ),
-                                  child: Text(
-                                    '$_quantity',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                                  child: _isUpdating
+                                      ? const SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : Text(
+                                          '$_quantity',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
                                 ),
                                 InkWell(
-                                  onTap: _incrementQuantity,
+                                  onTap: _isUpdating
+                                      ? null
+                                      : _incrementQuantity,
                                   borderRadius: BorderRadius.circular(6),
-                                  child: const Padding(
-                                    padding: EdgeInsets.symmetric(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
                                       horizontal: 10,
                                       vertical: 8,
                                     ),
                                     child: Icon(
                                       Icons.add,
                                       size: 16,
-                                      color: Color(0xFFE93C49),
+                                      color: _isUpdating
+                                          ? Colors.grey
+                                          : const Color(0xFFE93C49),
                                     ),
                                   ),
                                 ),

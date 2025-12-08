@@ -3,7 +3,7 @@ import 'package:trophythreads_mobile/features/cart/screens/cart_list.dart';
 import '../models/merchandise_entry.dart';
 
 class ProductDetailPage extends StatefulWidget {
-  const ProductDetailPage({Key? key}) : super(key: key);
+  const ProductDetailPage({Key? key, required merchandise}) : super(key: key);
 
   @override
   State<ProductDetailPage> createState() => _ProductDetailPageState();
