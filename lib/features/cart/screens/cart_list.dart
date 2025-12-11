@@ -111,7 +111,7 @@ class _CartPageState extends State<CartPage> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Apakah kamu yakin mau menghapus item ini dari keranjang (ï¾‰ï½¥ï½¡ï½¥)ï¾‰ï¼Ÿ',
+                  'Apakah kamu yakin mau menghapus item ini dari keranjang (づ •. •)?',
                   style: TextStyle(fontSize: 16, height: 1.3),
                 ),
                 const SizedBox(height: 16),

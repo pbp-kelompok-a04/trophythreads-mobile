@@ -12,25 +12,22 @@ class CheckoutPage extends StatefulWidget {
 
 class _CheckoutPageState extends State<CheckoutPage> {
   late CartService _cartService;
+
   bool _isLoading = true;
   bool _isProcessing = false;
 
-  List<Map<String, dynamic>> _items = [];
+  List<dynamic> _items = [];
   int _totalBeforeFee = 0;
   int _shippingFee = 0;
   int _serviceFee = 0;
   int _grandTotal = 0;
+  bool _isBuyNow = false;
 
-  final _addressController = TextEditingController();
-  String _paymentMethod = 'Gopay';
+  final TextEditingController _addressController = TextEditingController();
 
-  final List<Map<String, dynamic>> _paymentMethods = [
-    {'id': 'Gopay', 'label': 'Gopay', 'enabled': true},
-    {'id': 'BCA OnekliK', 'label': 'BCA OnekliK', 'enabled': true},
-    {'id': 'BRI OnekliK', 'label': 'BRI OnekliK', 'enabled': true},
-    {'id': 'OVO', 'label': 'OVO', 'enabled': false},
-    {'id': 'Flip', 'label': 'Flip', 'enabled': false},
-  ];
+  // Payment method selections
+  String _paymentCategory = 'ewallet'; // ewallet, bca, bri
+  String _paymentMethod = 'gopay'; // gopay, ovo, flip
 
   @override
   void initState() {
@@ -54,13 +51,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
     try {
       final result = await _cartService.getCheckoutItems();
 
-      if (result['success'] == true || result.containsKey('items')) {
+      if (result['success'] == true) {
         setState(() {
-          _items = List<Map<String, dynamic>>.from(result['items'] ?? []);
+          _items = result['items'] ?? [];
           _totalBeforeFee = result['total_before_fee'] ?? 0;
           _shippingFee = result['shipping_fee'] ?? 0;
           _serviceFee = result['service_fee'] ?? 0;
           _grandTotal = result['grand_total'] ?? 0;
+          _isBuyNow = result['is_buy_now'] ?? false;
           _isLoading = false;
         });
       } else {
@@ -68,7 +66,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['error'] ?? 'Gagal memuat data checkout'),
+              content: Text(result['error'] ?? 'Gagal memuat item checkout'),
               backgroundColor: const Color(0xFFE93C49),
             ),
           );
@@ -90,21 +88,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Future<void> _processCheckout() async {
-    // Validasi
-    if (_addressController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Alamat pengiriman harus diisi'),
-          backgroundColor: Color(0xFFE93C49),
-        ),
-      );
-      return;
-    }
+    final address = _addressController.text.trim();
 
-    if (_items.isEmpty) {
+    if (address.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Tidak ada item untuk checkout'),
+          content: Text('Alamat harus diisi'),
           backgroundColor: Color(0xFFE93C49),
         ),
       );
@@ -115,26 +104,72 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     try {
       final result = await _cartService.processCheckout(
-        address: _addressController.text.trim(),
+        address: address,
         paymentMethod: _paymentMethod,
       );
 
       setState(() => _isProcessing = false);
 
-      if (mounted) {
-        if (result['success'] == true) {
-          // Navigasi ke halaman sukses
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CheckoutSuccessPage(
-                orderToken: result['order_token'] ?? '',
-                total: result['total'] ?? 0,
-                grandTotal: result['grand_total'] ?? 0,
-              ),
-            ),
+      if (result['success'] == true) {
+        if (mounted) {
+          // Show success dialog
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                title: const Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF4CAF50),
+                      size: 32,
+                    ),
+                    SizedBox(width: 12),
+                    Text('Checkout Berhasil!'),
+                  ],
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Order Token: ${result['order_token']}'),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Total: Rp ${_formatPrice(result['grand_total'] ?? 0)}',
+                    ),
+                  ],
+                ),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close dialog
+                      Navigator.of(context).pop(); // Back to previous page
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE93C49),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Text('OK', style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                ],
+              );
+            },
           );
-        } else {
+        }
+      } else {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(result['message'] ?? 'Checkout gagal'),
@@ -168,41 +203,79 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF1F1),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFF6B6B),
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Text(
-            'Checkout',
-            style: TextStyle(
-              color: Color(0xFFFF6B6B),
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+        automaticallyImplyLeading: false,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFF45959), Color(0xFFFFA4A4)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
             ),
           ),
         ),
-        centerTitle: true,
+        centerTitle: false,
+        title: SizedBox(
+          width: MediaQuery.of(context).size.width - 16,
+          child: Container(
+            height: 56,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                InkWell(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6),
+                    child: Icon(Icons.arrow_back, color: Color(0xFFE36B6B)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Checkout',
+                    style: TextStyle(
+                      color: Color(0xFFE36B6B),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        toolbarHeight: 92,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Address Section
                   _buildAddressSection(),
-                  const SizedBox(height: 8),
-                  _buildProductSection(),
-                  const SizedBox(height: 8),
-                  _buildPaymentMethodSection(),
-                  const SizedBox(height: 8),
-                  _buildSummarySection(),
+                  const SizedBox(height: 12),
+
+                  // Items List
+                  ..._items.map((item) => _buildItemCard(item)).toList(),
+                  const SizedBox(height: 12),
+
+                  // Total Products
+                  _buildTotalProductsCard(),
+                  const SizedBox(height: 12),
+
+                  // Payment Method
+                  _buildPaymentMethodCard(),
+                  const SizedBox(height: 12),
+
+                  // Payment Summary
+                  _buildPaymentSummaryCard(),
                   const SizedBox(height: 100),
                 ],
               ),
@@ -213,54 +286,38 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Widget _buildAddressSection() {
     return Container(
-      margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFE0E0), width: 2),
+        border: Border.all(color: const Color(0xFFFFCECE), width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFE0E0),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(
-                  Icons.location_on,
-                  color: Color(0xFFFF6B6B),
-                  size: 16,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
+              Icon(Icons.location_on, color: Color(0xFFE93C49), size: 20),
+              SizedBox(width: 8),
+              Text(
                 'Burhan',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFFFF6B6B),
+                  color: Color(0xFFE93C49),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           TextField(
             controller: _addressController,
             maxLines: 2,
-            style: const TextStyle(fontSize: 13, height: 1.4),
+            style: const TextStyle(fontSize: 13),
             decoration: InputDecoration(
               hintText:
-                  'Masukkan alamat lengkap (contoh: Jl. AICSET No. 123 RT/RW 06/05, Universitas Indonesia, DEPOK)',
-              hintStyle: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[400],
-                height: 1.3,
-              ),
+                  'Alamat: Jl. ABCDEF No. 123 RT/RW 01/003, Universitas Indonesia, DEPOK',
+              hintStyle: TextStyle(fontSize: 13, color: Colors.grey[500]),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(color: Colors.grey[300]!),
@@ -271,9 +328,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFFFF6B6B)),
+                borderSide: const BorderSide(color: Color(0xFFE93C49)),
               ),
               contentPadding: const EdgeInsets.all(12),
+              filled: true,
+              fillColor: Colors.white,
             ),
           ),
         ],
@@ -281,76 +340,41 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  Widget _buildProductSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFE0E0), width: 2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ..._items.map((item) => _buildProductItem(item)).toList(),
-          const Divider(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Total 1 Produk',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-              ),
-              Text(
-                'Rp ${_formatPrice(_totalBeforeFee)}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFFF6B6B),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProductItem(Map<String, dynamic> item) {
-    final productName = item['product_name'] ?? 'Unknown Product';
+  Widget _buildItemCard(dynamic item) {
+    final productName = item['product_name'] ?? 'Unknown';
     final productPrice = item['product_price'] ?? 0;
-    final quantity = item['quantity'] ?? 1;
+    final quantity = item['quantity'] ?? 0;
     final thumbnail = item['product_thumbnail'] ?? '';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFCECE), width: 2),
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: SizedBox(
-              width: 70,
-              height: 70,
+            child: Container(
+              width: 80,
+              height: 80,
+              color: const Color(0xFFFFF8F8),
               child: thumbnail.isNotEmpty
                   ? Image.network(
                       thumbnail,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xFFF7F7F7),
-                        child: const Icon(
-                          Icons.image_not_supported,
-                          color: Color(0xFFFFCECE),
-                        ),
-                      ),
-                    )
-                  : Container(
-                      color: const Color(0xFFF7F7F7),
-                      child: const Icon(
-                        Icons.shopping_bag,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.image_not_supported,
                         color: Color(0xFFFFCECE),
                       ),
+                    )
+                  : const Icon(
+                      Icons.shopping_bag,
+                      color: Color(0xFFFFCECE),
+                      size: 40,
                     ),
             ),
           ),
@@ -362,7 +386,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 Text(
                   productName,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 2,
@@ -374,7 +398,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFFF6B6B),
+                    color: Color(0xFFE93C49),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -390,93 +414,138 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  Widget _buildPaymentMethodSection() {
+  Widget _buildTotalProductsCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFE0E0), width: 2),
+        border: Border.all(color: const Color(0xFFFFCECE), width: 2),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            'Metode Pembayaran',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          Text(
+            'Total ${_items.length} Produk',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _paymentMethods.map((method) {
-              final isSelected = _paymentMethod == method['id'];
-              final isEnabled = method['enabled'] as bool;
-
-              return GestureDetector(
-                onTap: isEnabled
-                    ? () => setState(() => _paymentMethod = method['id'])
-                    : null,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isEnabled
-                        ? (isSelected ? const Color(0xFFFFE0E0) : Colors.white)
-                        : Colors.grey[100],
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isEnabled
-                          ? (isSelected
-                                ? const Color(0xFFFF6B6B)
-                                : Colors.grey[300]!)
-                          : Colors.grey[300]!,
-                      width: isSelected ? 2 : 1,
-                    ),
-                  ),
-                  child: Text(
-                    method['label'],
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.normal,
-                      color: isEnabled
-                          ? (isSelected
-                                ? const Color(0xFFFF6B6B)
-                                : Colors.black87)
-                          : Colors.grey[400],
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
+          Text(
+            'Rp ${_formatPrice(_totalBeforeFee)}',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSummarySection() {
+  Widget _buildPaymentMethodCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFE0E0), width: 2),
+        border: Border.all(color: const Color(0xFFFFCECE), width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Metode Pembayaran',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+
+          // Payment Category Buttons
+          Row(
+            children: [
+              _buildPaymentCategoryButton('Ewallet', 'ewallet'),
+              const SizedBox(width: 8),
+              _buildPaymentCategoryButton('BCA OneKlik', 'bca'),
+              const SizedBox(width: 8),
+              _buildPaymentCategoryButton('BRI OneKlik', 'bri'),
+            ],
+          ),
+
+          // Show ewallet options only if ewallet is selected
+          if (_paymentCategory == 'ewallet') ...[
+            const SizedBox(height: 16),
+            _buildPaymentOption('Gopay', 'gopay'),
+            _buildPaymentOption('Ovo', 'ovo'),
+            _buildPaymentOption('Flip', 'flip'),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentCategoryButton(String label, String value) {
+    final isSelected = _paymentCategory == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _paymentCategory = value;
+            if (value != 'ewallet') {
+              _paymentMethod = value;
+            }
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFFFE5E5) : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFFE93C49)
+                  : const Color(0xFFE0E0E0),
+              width: 1.5,
+            ),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isSelected ? const Color(0xFFE93C49) : Colors.black87,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentOption(String label, String value) {
+    return RadioListTile<String>(
+      title: Text(label, style: const TextStyle(fontSize: 14)),
+      value: value,
+      groupValue: _paymentMethod,
+      onChanged: (newValue) {
+        setState(() => _paymentMethod = newValue ?? 'gopay');
+      },
+      activeColor: const Color(0xFFE93C49),
+      contentPadding: EdgeInsets.zero,
+      visualDensity: const VisualDensity(horizontal: -4, vertical: -2),
+    );
+  }
+
+  Widget _buildPaymentSummaryCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFCECE), width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Rincian Pembayaran',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _buildSummaryRow('Subtotal Pesanan', _totalBeforeFee),
           const SizedBox(height: 8),
           _buildSummaryRow('Subtotal Pengiriman', _shippingFee),
@@ -488,14 +557,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
             children: [
               const Text(
                 'Total Pembayaran',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFE93C49),
+                ),
               ),
               Text(
                 'Rp ${_formatPrice(_grandTotal)}',
                 style: const TextStyle(
-                  fontSize: 18,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFFFF6B6B),
+                  color: Color(0xFFE93C49),
                 ),
               ),
             ],
@@ -509,10 +582,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+        Text(label, style: const TextStyle(fontSize: 13)),
         Text(
           'Rp ${_formatPrice(amount)}',
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          style: const TextStyle(fontSize: 13),
         ),
       ],
     );
@@ -520,15 +593,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Widget _buildBottomBar() {
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFF6B6B),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFFD9B9B), Color(0xFFFF6B6B), Color(0xFFEC414E)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
       ),
       child: SafeArea(
         child: Padding(
@@ -544,201 +614,61 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       'Rp ${_formatPrice(_grandTotal)}',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const Text(
                       'Termasuk biaya layanan & pengiriman',
-                      style: TextStyle(color: Colors.white70, fontSize: 11),
+                      style: TextStyle(color: Colors.white, fontSize: 10),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              ElevatedButton(
-                onPressed: _isProcessing ? null : _processCheckout,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFFFF6B6B),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 14,
+              const SizedBox(width: 16),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFFFFFFFF),
+                      Color(0xFFFEEFEF),
+                      Color(0xFFFFD4D4),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: _isProcessing
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Color(0xFFFF6B6B),
+                child: ElevatedButton(
+                  onPressed: _isProcessing ? null : _processCheckout,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: const Color(0xFFFF6B6B),
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: _isProcessing
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFFFF6B6B),
+                          ),
+                        )
+                      : const Text(
+                          'Buat Pesanan',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
                           ),
                         ),
-                      )
-                    : const Text(
-                        'Buat Pesanan',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// Halaman Sukses Checkout
-class CheckoutSuccessPage extends StatelessWidget {
-  final String orderToken;
-  final int total;
-  final int grandTotal;
-
-  const CheckoutSuccessPage({
-    Key? key,
-    required this.orderToken,
-    required this.total,
-    required this.grandTotal,
-  }) : super(key: key);
-
-  String _formatPrice(int price) {
-    return price.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]}.',
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFF1F1),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFF6B6B),
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'Pesanan Berhasil',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.check_circle,
-                  size: 80,
-                  color: Color(0xFF4CAF50),
-                ),
-              ),
-              const SizedBox(height: 32),
-              const Text(
-                'Pembayaran Berhasil!',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFFF6B6B),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Pesanan Anda sedang diproses',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 32),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFFE0E0), width: 2),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Order Token',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      orderToken,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'monospace',
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'Total Pembayaran',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Rp ${_formatPrice(grandTotal)}',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFFF6B6B),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: () {
-                  // Kembali ke home dan clear navigation stack
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF6B6B),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 48,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 2,
-                ),
-                child: const Text(
-                  'Kembali ke Beranda',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
                 ),
               ),
             ],

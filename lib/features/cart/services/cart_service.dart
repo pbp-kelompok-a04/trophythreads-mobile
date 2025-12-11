@@ -296,11 +296,12 @@ class CartService {
   // ============ GET CHECKOUT ITEMS ============
   Future<Map<String, dynamic>> getCheckoutItems() async {
     try {
-      final response = await request.get('$baseUrl/cart/api/checkout-items/');
+      // Gunakan endpoint show_checkout_json yang sudah dimodifikasi
+      final response = await request.get('$baseUrl/cart/checkout-json/');
 
       if (response is Map) {
         return {
-          'success': true,
+          'success': response['success'] ?? false,
           'items': response['items'] ?? [],
           'total_before_fee': response['total_before_fee'] ?? 0,
           'shipping_fee': response['shipping_fee'] ?? 0,
@@ -334,25 +335,33 @@ class CartService {
 
       print('Processing checkout: address=$address, payment=$paymentMethod');
 
+      // Gunakan endpoint checkout_view yang sudah ada
       final response = await request.postJson(
-        '$baseUrl/cart/api/process-checkout/',
+        '$baseUrl/cart/checkout/',
         jsonEncode({'address': address, 'payment_method': paymentMethod}),
       );
 
       print('Checkout response: $response');
 
       if (response is Map) {
+        // Check for success
         if (response['success'] == true) {
           return {
             'success': true,
             'message': response['message'] ?? 'Checkout successful',
             'order_token': response['order_token'],
-            'total': response['total'],
-            'shipping_fee': response['shipping_fee'],
-            'service_fee': response['service_fee'],
-            'grand_total': response['grand_total'],
+            'total': response['total'] ?? 0,
+            'shipping_fee': response['shipping_fee'] ?? 0,
+            'service_fee': response['service_fee'] ?? 0,
+            'grand_total': response['grand_total'] ?? 0,
           };
-        } else {
+        }
+        // Check for error field
+        else if (response.containsKey('error')) {
+          return {'success': false, 'message': response['error']};
+        }
+        // Success field is false
+        else {
           return {
             'success': false,
             'message': response['message'] ?? 'Checkout failed',
