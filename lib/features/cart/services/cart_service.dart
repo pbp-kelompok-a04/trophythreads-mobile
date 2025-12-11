@@ -292,4 +292,78 @@ class CartService {
       return {'success': false, 'message': 'Network error: ${e.toString()}'};
     }
   }
+
+  // ============ GET CHECKOUT ITEMS ============
+  Future<Map<String, dynamic>> getCheckoutItems() async {
+    try {
+      final response = await request.get('$baseUrl/cart/api/checkout-items/');
+
+      if (response is Map) {
+        return {
+          'success': true,
+          'items': response['items'] ?? [],
+          'total_before_fee': response['total_before_fee'] ?? 0,
+          'shipping_fee': response['shipping_fee'] ?? 0,
+          'service_fee': response['service_fee'] ?? 0,
+          'grand_total': response['grand_total'] ?? 0,
+          'is_buy_now': response['is_buy_now'] ?? false,
+          'error': response['error'],
+        };
+      }
+
+      return {'success': false, 'message': 'Unexpected response format'};
+    } catch (e) {
+      print('Error getting checkout items: $e');
+      return {'success': false, 'message': 'Network error: ${e.toString()}'};
+    }
+  }
+
+  // ============ PROCESS CHECKOUT ============
+  Future<Map<String, dynamic>> processCheckout({
+    required String address,
+    required String paymentMethod,
+  }) async {
+    try {
+      if (address.isEmpty) {
+        return {'success': false, 'message': 'Address is required'};
+      }
+
+      if (paymentMethod.isEmpty) {
+        return {'success': false, 'message': 'Payment method is required'};
+      }
+
+      print('Processing checkout: address=$address, payment=$paymentMethod');
+
+      final response = await request.postJson(
+        '$baseUrl/cart/api/process-checkout/',
+        jsonEncode({'address': address, 'payment_method': paymentMethod}),
+      );
+
+      print('Checkout response: $response');
+
+      if (response is Map) {
+        if (response['success'] == true) {
+          return {
+            'success': true,
+            'message': response['message'] ?? 'Checkout successful',
+            'order_token': response['order_token'],
+            'total': response['total'],
+            'shipping_fee': response['shipping_fee'],
+            'service_fee': response['service_fee'],
+            'grand_total': response['grand_total'],
+          };
+        } else {
+          return {
+            'success': false,
+            'message': response['message'] ?? 'Checkout failed',
+          };
+        }
+      }
+
+      return {'success': false, 'message': 'Unexpected response format'};
+    } catch (e) {
+      print('Error processing checkout: $e');
+      return {'success': false, 'message': 'Network error: ${e.toString()}'};
+    }
+  }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:trophythreads_mobile/features/cart/screens/checkout_page.dart';
 import '../models/cart_entry.dart';
 import '../widgets/cart_item_card.dart';
 import '../services/cart_service.dart';
@@ -233,23 +234,13 @@ class _CartPageState extends State<CartPage> {
       return;
     }
 
-    // Show loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    // TODO: Implement checkout flow
-    // For now, just show a message
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    if (mounted) {
-      Navigator.pop(context); // Close loading
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Checkout ${selectedItems.length} item')),
-      );
-    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CheckoutPage()),
+    ).then((_) {
+      // Refresh cart setelah kembali dari checkout
+      _fetchCartItems();
+    });
   }
 
   @override
