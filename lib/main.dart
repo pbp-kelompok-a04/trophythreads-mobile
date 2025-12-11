@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:trophythreads_mobile/bottom_navbar.dart';
 import 'package:trophythreads_mobile/features/auth/screens/login.dart';
 import 'package:trophythreads_mobile/features/match_info/screens/match_entry_list.dart';
+import 'package:trophythreads_mobile/features/merchandise/screens/merchandise_list.dart';
 
 void main() {
   runApp(const MyApp());
@@ -19,7 +21,7 @@ class MyApp extends StatelessWidget {
         return request;
       },
       child: MaterialApp(
-        title: 'Flutter Demo',
+        title: 'Trophy Threads',
         theme: ThemeData(
           colorScheme: const ColorScheme(
             brightness: Brightness.light,
@@ -33,27 +35,34 @@ class MyApp extends StatelessWidget {
             onError: Colors.white,
           ),
         ),
-        home: const LoginPage(),
+        home: LoginPage(),
       ),
     );
   }
 }
 
 class MainScaffold extends StatefulWidget {
-  const MainScaffold({super.key});
+  final int initialIndex;
+  const MainScaffold({super.key, this.initialIndex = 0});
 
   @override
   State<MainScaffold> createState() => _MainScaffoldState();
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   final List<Widget> _pages = [
     const MatchEntryListPage(),
-    const Center(child: Text("Halaman Merchandise")),
+    const MerchandiseEntryListPage(),
     const Center(child: Text("Halaman Discussion")),
     const Center(child: Text("Halaman Profile")),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -64,46 +73,10 @@ class _MainScaffoldState extends State<MainScaffold> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex], // berubah sesuai index
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: const Color.fromARGB(255, 229, 184, 194),
-        showUnselectedLabels: true,
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavbar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        items: const <BottomNavigationBarItem>[
-          // navbar match
-          BottomNavigationBarItem(
-            icon: Icon(Icons.analytics_outlined),
-            activeIcon: Icon(Icons.analytics),
-            label: 'Match',
-          ),
-
-          // navbar merch
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart_outlined),
-            activeIcon: Icon(Icons.shopping_cart),
-            label: 'Merchandise',
-          ),
-
-          // navbar discussion
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline),
-            activeIcon: Icon(Icons.chat_bubble),
-            label: 'Discussion',
-          ),
-
-          // navbar profile
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
       ),
     );
   }
