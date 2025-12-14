@@ -4,6 +4,8 @@ import 'dart:io' show Platform;
 import '../models/merchandise_entry.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:trophythreads_mobile/features/review/screens/review_list_page.dart';
+
 
 class ProductDetailPage extends StatefulWidget {
   final MerchandiseEntry merchandise;
