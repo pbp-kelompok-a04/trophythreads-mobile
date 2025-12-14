@@ -33,12 +33,12 @@ class MerchandiseCard extends StatelessWidget {
               ),
             );
           // Navigate ke route yang sesuai (tergantung jenis tombol)
-          if (item.name == "Add News") {
+          if (item.name == "Create") {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => MerchandiseFormPage()),
             );
-          } else if (item.name == "See Football News") {
+          } else if (item.name == "See Merchandise") {
             Navigator.push(
               context,
               MaterialPageRoute(
