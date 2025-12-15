@@ -389,7 +389,7 @@ class _CartPageState extends State<CartPage> {
           children: [
             const SizedBox(height: 24),
             const Text(
-              'Belum ada produk di Keranjang(ï½¡Â´ï¸¶`ï½¡)',
+              'Belum ada produk di Keranjang (｡´︶`｡)',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 20,
