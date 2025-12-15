@@ -5,6 +5,7 @@ import 'package:trophythreads_mobile/features/cart/screens/checkout_page.dart';
 import '../models/cart_entry.dart';
 import '../widgets/cart_item_card.dart';
 import '../services/cart_service.dart';
+import 'package:trophythreads_mobile/features/favorites/screens/favorites_page.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({Key? key}) : super(key: key);
@@ -294,7 +295,14 @@ class _CartPageState extends State<CartPage> {
                   ),
                 ),
                 InkWell(
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const FavoritesPage(),
+                      ),
+                    );
+                  },
                   child: const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 6),
                     child: Icon(

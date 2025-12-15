@@ -5,7 +5,10 @@ import '../models/merchandise_entry.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:trophythreads_mobile/features/review/screens/review_list_page.dart';
-
+import 'package:trophythreads_mobile/features/cart/services/cart_service.dart';
+import 'package:trophythreads_mobile/features/cart/screens/cart_list.dart';
+import 'package:trophythreads_mobile/features/cart/screens/checkout_page.dart';
+import 'package:trophythreads_mobile/features/favorites/screens/favorites_page.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final MerchandiseEntry merchandise;
@@ -28,11 +31,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   final List<Map<String, dynamic>> _reviews = [];
   String? _ratingFilter;
 
+  late CartService _cartService;
+
   @override
   void initState() {
     super.initState();
     _checkFavoriteStatus();
     _loadCartCount();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final request = context.read<CookieRequest>();
+      _cartService = CartService(request);
+    });
   }
 
   String _getImageUrl(String? thumbnail) {
@@ -122,21 +131,21 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
   }
 
+  // Add to Cart menggunakan CartService
   Future<void> _addToCart() async {
     setState(() => _isLoadingCart = true);
-    final request = context.read<CookieRequest>();
 
     try {
-      final response = await request.post('http://localhost:8000/cart/add/', {
-        'product_id': widget.merchandise.pk,
-        'quantity': _quantity.toString(),
-      });
+      final result = await _cartService.addToCart(
+        productId: widget.merchandise.pk,
+        quantity: _quantity,
+      );
 
-      if (response['message'] != null) {
+      if (result['success'] == true) {
         _showToast('Product added to cart!', Colors.green);
         await _loadCartCount();
       } else {
-        _showToast(response['error'] ?? 'Failed to add to cart', Colors.red);
+        _showToast(result['message'] ?? 'Failed to add to cart', Colors.red);
       }
     } catch (e) {
       _showToast('An error occurred', Colors.red);
@@ -146,26 +155,32 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
   }
 
+  // Buy Now menggunakan CartService dan navigasi ke CheckoutPage
   Future<void> _buyNow() async {
     setState(() => _isLoadingCart = true);
-    final request = context.read<CookieRequest>();
 
     try {
-      final response = await request.post(
-        'http://localhost:8000/cart/buy-now/',
-        {'product_id': widget.merchandise.pk, 'quantity': _quantity.toString()},
+      final result = await _cartService.buyNow(
+        productId: widget.merchandise.pk,
+        quantity: _quantity,
       );
 
-      if (response['redirect_url'] != null) {
-        _showToast('Redirecting to checkout...', Colors.blue);
+      setState(() => _isLoadingCart = false);
+
+      if (result['success'] == true) {
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CheckoutPage()),
+          );
+        }
       } else {
-        _showToast(response['error'] ?? 'Failed to proceed', Colors.red);
+        _showToast(result['message'] ?? 'Failed to proceed', Colors.red);
       }
     } catch (e) {
+      setState(() => _isLoadingCart = false);
       _showToast('An error occurred', Colors.red);
       debugPrint('Error buying now: $e');
-    } finally {
-      setState(() => _isLoadingCart = false);
     }
   }
 
@@ -231,11 +246,47 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             },
           ),
 
+          // Icon cart navigasi ke CartPage
           IconButton(
-            icon: const Icon(Icons.shopping_cart),
+            icon: Stack(
+              children: [
+                const Icon(Icons.shopping_cart),
+                if (_cartCount > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        '$_cartCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             color: Colors.orange,
             onPressed: () {
-              _showToast('Navigate to cart', Colors.blue);
+              // Navigate ke CartPage
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartPage()),
+              ).then((_) {
+                _loadCartCount();
+              });
             },
           ),
           const SizedBox(width: 8),
