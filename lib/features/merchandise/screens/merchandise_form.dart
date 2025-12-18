@@ -144,6 +144,7 @@ class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                
                                 // input Nama produk
                                 const Text("Nama Merchandise"),
                                 SizedBox(height: 4),

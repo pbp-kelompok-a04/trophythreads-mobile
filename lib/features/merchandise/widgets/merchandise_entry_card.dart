@@ -66,9 +66,7 @@ class MerchandiseEntryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final f = merchandise.fields;
-    final thumbnail = (f.thumbnail != null && f.thumbnail.isNotEmpty)
-        ? 'http://localhost:8000/proxy-image/?url=${Uri.encodeComponent(f.thumbnail)}'
-        : null;
+    final thumbnail = f.thumbnail?.isNotEmpty == true ? f.thumbnail : null;
     final name = f.name ?? 'Unknown Product';
     final category = (f.category ?? 'Others').toString();
     final priceText = _formatPrice(f.price ?? 0);
@@ -96,7 +94,7 @@ class MerchandiseEntryCard extends StatelessWidget {
                   Positioned.fill(
                     child: thumbnail != null
                         ? Image.network(
-                            thumbnail,
+                            thumbnail!,
                             fit: BoxFit.cover,
                             width: double.infinity,
                             errorBuilder: (_, __, ___) => Container(
@@ -122,27 +120,32 @@ class MerchandiseEntryCard extends StatelessWidget {
                   Positioned(
                     left: 8,
                     top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.45,
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade700,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade700,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 6,
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          category[0].toUpperCase() + category.substring(1),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
-                        ],
-                      ),
-                      child: Text(
-                        category[0].toUpperCase() + category.substring(1),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -252,7 +255,10 @@ class MerchandiseEntryCard extends StatelessWidget {
                   const SizedBox(height: 8),
 
                   // Rating and stock row
-                  Row(
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 2,
                     children: [
                       _buildStars(rating),
                       const SizedBox(width: 8),

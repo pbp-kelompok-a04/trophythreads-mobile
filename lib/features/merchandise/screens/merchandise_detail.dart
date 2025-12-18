@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform;
 import '../models/merchandise_entry.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:provider/provider.dart';
 import 'package:trophythreads_mobile/features/review/screens/review_list_page.dart';
 import 'package:trophythreads_mobile/features/review/screens/add_review_.dart';
 import 'package:trophythreads_mobile/features/cart/services/cart_service.dart';
@@ -8,154 +12,190 @@ import 'package:trophythreads_mobile/features/cart/screens/checkout_page.dart';
 import 'package:trophythreads_mobile/features/favorites/screens/favorites_page.dart';
 
 class ProductDetailPage extends StatefulWidget {
-  const ProductDetailPage({Key? key, required merchandise}) : super(key: key);
+  final MerchandiseEntry merchandise;
+
+  const ProductDetailPage({Key? key, required this.merchandise})
+    : super(key: key);
 
   @override
   State<ProductDetailPage> createState() => _ProductDetailPageState();
 }
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
-  final List<String> images = [
-    'https://picsum.photos/800/800?image=1',
-    'https://picsum.photos/800/800?image=2',
-    'https://picsum.photos/800/800?image=3',
-  ];
-
-  int _currentImage = 0;
   int _quantity = 1;
   bool _isFavorite = false;
+  String? _favoriteId;
+  bool _isLoadingFavorite = false;
+  bool _isLoadingCart = false;
+  int _cartCount = 0;
+
+  final List<Map<String, dynamic>> _reviews = [];
+  String? _ratingFilter;
 
   @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Product Detail'),
-        actions: [
-          IconButton(
-            icon: Icon(_isFavorite ? Icons.favorite : Icons.favorite_border),
-            onPressed: () => setState(() => _isFavorite = !_isFavorite),
-          ),
-        ],
-      ),
-      bottomNavigationBar: _buildBottomBar(context),
-      body: SafeArea(
-        child: ListView(
-          children: [
-            _buildImageCarousel(),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTitleAndPrice(),
-                  const SizedBox(height: 8),
-                  _buildRatingAndStock(),
-                  const SizedBox(height: 12),
-                  _buildQuantity(),
-                  const SizedBox(height: 16),
-                  _buildDescription(),
-                  const SizedBox(height: 16),
-                  _buildReviews(),
-                  const SizedBox(height: 80), // leave space for bottom bar
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  void initState() {
+    super.initState();
+    _checkFavoriteStatus();
+    _loadCartCount();
   }
 
-  Widget _buildImageCarousel() {
-    return Column(
-      children: [
-        SizedBox(
-          height: 320,
-          child: PageView.builder(
-            onPageChanged: (index) => setState(() => _currentImage = index),
-            itemCount: images.length,
-            itemBuilder: (context, index) {
-              return Hero(
-                tag: 'product-image-$index',
-                child: Image.network(
-                  images[index],
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    return const Center(child: CircularProgressIndicator());
-                  },
-                  errorBuilder: (context, error, stack) => const Center(child: Icon(Icons.broken_image, size: 48)),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 8),
-        _buildImageIndicators(),
-      ],
-    );
+  String _getImageUrl(String? thumbnail) {
+    if (thumbnail == null || thumbnail.isEmpty) return '';
+    if (thumbnail.startsWith('http')) return thumbnail;
+
+    final host = kIsWeb
+        ? 'http://localhost:8000'
+        : (Platform.isAndroid
+              ? 'http://10.0.2.2:8000'
+              : 'http://localhost:8000');
+    return '$host$thumbnail';
   }
 
-  Widget _buildImageIndicators() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(images.length, (index) {
-        bool active = index == _currentImage;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: active ? 20 : 8,
-          height: 8,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            color: active ? Colors.blueAccent : Colors.grey.shade400,
-          ),
+  String _formatPrice(int price) {
+    final formatted = price.toString().replaceAllMapped(
+      RegExp(r"\B(?=(\d{3})+(?!\d))"),
+      (m) => '.',
+    );
+    return 'Rp $formatted';
+  }
+
+  Future<void> _checkFavoriteStatus() async {
+    final request = context.read<CookieRequest>();
+    try {
+      final response = await request.get(
+        'http://localhost:8000/favorites/check/${widget.merchandise.pk}/',
+      );
+      if (response['is_favorited'] == true) {
+        setState(() {
+          _isFavorite = true;
+          _favoriteId = response['favorite_id'];
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking favorite: $e');
+    }
+  }
+
+  Future<void> _loadCartCount() async {
+    final request = context.read<CookieRequest>();
+    try {
+      final response = await request.get('http://localhost:8000/cart/json/');
+      if (response is List) {
+        setState(() => _cartCount = response.length);
+      }
+    } catch (e) {
+      debugPrint('Error loading cart count: $e');
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    setState(() => _isLoadingFavorite = true);
+    final request = context.read<CookieRequest>();
+
+    try {
+      if (_isFavorite && _favoriteId != null) {
+        final response = await request.post(
+          'http://localhost:8000/favorites/remove/',
+          {'favorite_id': _favoriteId},
         );
-      }),
-    );
+        if (response['status'] == 'ok') {
+          setState(() {
+            _isFavorite = false;
+            _favoriteId = null;
+          });
+          _showToast('Removed from Favorites', Colors.blue);
+        }
+      } else {
+        final response = await request.post(
+          'http://localhost:8000/favorites/add/',
+          {'merchandise_id': widget.merchandise.pk},
+        );
+        if (response['status'] == 'ok') {
+          setState(() {
+            _isFavorite = true;
+            _favoriteId = response['favorite_id'];
+          });
+          _showToast('Added to Favorites!', Colors.green);
+        }
+      }
+    } catch (e) {
+      _showToast('Failed to update favorite', Colors.red);
+      debugPrint('Error toggling favorite: $e');
+    } finally {
+      setState(() => _isLoadingFavorite = false);
+    }
   }
 
-  Widget _buildTitleAndPrice() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                'Stylish Casual Shirt',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 4),
-              Text('Brand: FashionCo', style: TextStyle(color: Colors.grey)),
-            ],
-          ),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: const [
-            Text('\$79.99', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 4),
-            Text('\$129.99', style: TextStyle(color: Colors.grey, decoration: TextDecoration.lineThrough)),
+  Future<void> _addToCart() async {
+    setState(() => _isLoadingCart = true);
+    final request = context.read<CookieRequest>();
+
+    try {
+      final response = await request.post('http://localhost:8000/cart/add/', {
+        'product_id': widget.merchandise.pk,
+        'quantity': _quantity.toString(),
+      });
+
+      if (response['message'] != null) {
+        _showToast('Product added to cart!', Colors.green);
+        await _loadCartCount();
+      } else {
+        _showToast(response['error'] ?? 'Failed to add to cart', Colors.red);
+      }
+    } catch (e) {
+      _showToast('An error occurred', Colors.red);
+      debugPrint('Error adding to cart: $e');
+    } finally {
+      setState(() => _isLoadingCart = false);
+    }
+  }
+
+  Future<void> _buyNow() async {
+    setState(() => _isLoadingCart = true);
+    final request = context.read<CookieRequest>();
+
+    try {
+      final response = await request.post(
+        'http://localhost:8000/cart/buy-now/',
+        {'product_id': widget.merchandise.pk, 'quantity': _quantity.toString()},
+      );
+
+      if (response['redirect_url'] != null) {
+        _showToast('Redirecting to checkout...', Colors.blue);
+      } else {
+        _showToast(response['error'] ?? 'Failed to proceed', Colors.red);
+      }
+    } catch (e) {
+      _showToast('An error occurred', Colors.red);
+      debugPrint('Error buying now: $e');
+    } finally {
+      setState(() => _isLoadingCart = false);
+    }
+  }
+
+  void _showToast(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              color == Colors.green
+                  ? Icons.check_circle
+                  : color == Colors.red
+                  ? Icons.error
+                  : Icons.info,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
           ],
         ),
-      ],
-    );
-  }
-
-  Widget _buildRatingAndStock() {
-    return Row(
-      children: [
-        _buildStarRating(4.5),
-        const SizedBox(width: 8),
-        const Text('(120 reviews)', style: TextStyle(color: Colors.grey)),
-        const Spacer(),
-        const Text('In stock', style: TextStyle(color: Colors.green)),
-      ],
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 
@@ -165,9 +205,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (i) {
-        if (i < full) return const Icon(Icons.star, size: 18, color: Colors.orange);
-        if (i == full && half) return const Icon(Icons.star_half, size: 18, color: Colors.orange);
-        return const Icon(Icons.star_border, size: 18, color: Colors.orange);
+        if (i < full)
+          return const Icon(Icons.star, size: 16, color: Colors.amber);
+        if (i == full && half)
+          return const Icon(Icons.star_half, size: 16, color: Colors.amber);
+        return const Icon(Icons.star_border, size: 16, color: Colors.grey);
       }),
     );
   }
