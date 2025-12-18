@@ -5,7 +5,7 @@ import '../models/merchandise_entry.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:trophythreads_mobile/features/review/screens/review_list_page.dart';
-import 'package:trophythreads_mobile/features/review/screens/add_review_.dart';
+import 'package:trophythreads_mobile/features/review/screens/add_review_page.dart';
 import 'package:trophythreads_mobile/features/cart/services/cart_service.dart';
 import 'package:trophythreads_mobile/features/cart/screens/cart_list.dart';
 import 'package:trophythreads_mobile/features/cart/screens/checkout_page.dart';
