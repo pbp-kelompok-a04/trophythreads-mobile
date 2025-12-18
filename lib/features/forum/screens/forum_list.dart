@@ -6,7 +6,6 @@ import 'package:trophythreads_mobile/features/forum/widgets/forum_box.dart';
 import 'package:trophythreads_mobile/features/forum/screens/forum_details.dart';
 import 'package:trophythreads_mobile/features/forum/screens/create_forum.dart';
 
-
 enum _SelectedFilter { all, official, community }
 
 class ForumListPage extends StatefulWidget {
@@ -25,6 +24,13 @@ class _ForumListPageState extends State<ForumListPage> {
 
   Key _futureBuilderKey = UniqueKey();
 
+  void _refreshList() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (mounted) {
+      setState(() => _futureBuilderKey = UniqueKey());
+    }
+  }
+
   // --- DATA FETCHING ---
   Future<List<Forum>> fetchForums(CookieRequest request) async {
     String filterValue;
@@ -36,7 +42,7 @@ class _ForumListPageState extends State<ForumListPage> {
       filterValue = 'all';
     }
 
-    final String url = '${ForumListPage.baseUrl}/forum/json/';
+    final String url = '${ForumListPage.baseUrl}forum/json/';
 
     final response = await request.get(url);
 
@@ -66,7 +72,7 @@ class _ForumListPageState extends State<ForumListPage> {
   // --- VIEW INCREMENTER ---
   Future<void> _incrementViews(CookieRequest request, String threadId) async {
     final String url =
-        "${ForumListPage.baseUrl}/forum/views/increment/$threadId/";
+        "${ForumListPage.baseUrl}forum/views/increment/$threadId/";
 
     try {
       final response = await request.post(url, {});
@@ -272,6 +278,7 @@ class _ForumListPageState extends State<ForumListPage> {
                               forum: forum,
                               currentUser: loggedUser,
                               onTap: () => _onForumTapped(context, forum),
+                              refresh: _refreshList,
                             );
                           },
                         );
