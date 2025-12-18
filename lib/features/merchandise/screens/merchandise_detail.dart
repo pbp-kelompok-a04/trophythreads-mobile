@@ -32,11 +32,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   final List<Map<String, dynamic>> _reviews = [];
   String? _ratingFilter;
 
+  late CartService _cartService;
+
   @override
   void initState() {
     super.initState();
     _checkFavoriteStatus();
     _loadCartCount();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final request = context.read<CookieRequest>();
+      _cartService = CartService(request);
+    });
   }
 
   String _getImageUrl(String? thumbnail) {
@@ -126,21 +132,21 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
   }
 
+  // Add to Cart menggunakan CartService
   Future<void> _addToCart() async {
     setState(() => _isLoadingCart = true);
-    final request = context.read<CookieRequest>();
 
     try {
-      final response = await request.post('http://localhost:8000/cart/add/', {
-        'product_id': widget.merchandise.pk,
-        'quantity': _quantity.toString(),
-      });
+      final result = await _cartService.addToCart(
+        productId: widget.merchandise.pk,
+        quantity: _quantity,
+      );
 
-      if (response['message'] != null) {
+      if (result['success'] == true) {
         _showToast('Product added to cart!', Colors.green);
         await _loadCartCount();
       } else {
-        _showToast(response['error'] ?? 'Failed to add to cart', Colors.red);
+        _showToast(result['message'] ?? 'Failed to add to cart', Colors.red);
       }
     } catch (e) {
       _showToast('An error occurred', Colors.red);
@@ -150,26 +156,32 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
   }
 
+  // Buy Now menggunakan CartService dan navigasi ke CheckoutPage
   Future<void> _buyNow() async {
     setState(() => _isLoadingCart = true);
-    final request = context.read<CookieRequest>();
 
     try {
-      final response = await request.post(
-        'http://localhost:8000/cart/buy-now/',
-        {'product_id': widget.merchandise.pk, 'quantity': _quantity.toString()},
+      final result = await _cartService.buyNow(
+        productId: widget.merchandise.pk,
+        quantity: _quantity,
       );
 
-      if (response['redirect_url'] != null) {
-        _showToast('Redirecting to checkout...', Colors.blue);
+      setState(() => _isLoadingCart = false);
+
+      if (result['success'] == true) {
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CheckoutPage()),
+          );
+        }
       } else {
-        _showToast(response['error'] ?? 'Failed to proceed', Colors.red);
+        _showToast(result['message'] ?? 'Failed to proceed', Colors.red);
       }
     } catch (e) {
+      setState(() => _isLoadingCart = false);
       _showToast('An error occurred', Colors.red);
       debugPrint('Error buying now: $e');
-    } finally {
-      setState(() => _isLoadingCart = false);
     }
   }
 
