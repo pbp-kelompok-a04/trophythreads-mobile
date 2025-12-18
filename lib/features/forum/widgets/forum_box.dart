@@ -1,12 +1,18 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:provider/provider.dart';
 import 'package:trophythreads_mobile/features/forum/models/forum.dart';
+import 'package:trophythreads_mobile/features/forum/screens/edit_forum.dart';
 
 class ForumBox extends StatelessWidget {
   final Forum forum;
   final VoidCallback onTap;
+  final VoidCallback refresh;
   final String? currentUser;
 
-  const ForumBox({super.key, required this.forum, required this.onTap, this.currentUser});
+  const ForumBox({super.key, required this.forum, required this.onTap, required this.refresh, this.currentUser});
 
   // Helper format date
   String _formatDate(DateTime dateTime) {
@@ -19,6 +25,9 @@ class ForumBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final request = context.watch<CookieRequest>();
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16.0), // Margin between cards
       elevation: 1, // Subtle shadow
@@ -166,15 +175,24 @@ class ForumBox extends StatelessWidget {
               const SizedBox(height: 16),
 
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween, // Pushes groups to opposite ends
+                mainAxisAlignment: MainAxisAlignment.spaceBetween, 
                 children: [
-                  // Left Group: Edit & Delete (Conditional)
                   if (currentUser != null && forum.author == currentUser)
                     Row(
                       children: [
+
+                        // Edit button
                         OutlinedButton(
-                          onPressed: () {
-                            // Handle Edit Logic
+                          onPressed: () async {
+                            final refreshNeeded = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => EditForumPage(forum: forum),
+                              ),
+                            );
+                            if (refreshNeeded == true) {
+                              refreshNeeded(); 
+                            }
                           },
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Colors.grey),
@@ -183,10 +201,13 @@ class ForumBox extends StatelessWidget {
                           ),
                           child: const Text('Edit', style: TextStyle(color: Colors.black87, fontSize: 13)),
                         ),
-                        const SizedBox(width: 8), // Distance between Edit and Delete
+
+                        const SizedBox(width: 8), 
+
+                        // Delete button
                         OutlinedButton(
                           onPressed: () {
-                            // Handle Delete Logic
+                            _showDeleteDialog(context, request);
                           },
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Colors.red),
@@ -198,9 +219,9 @@ class ForumBox extends StatelessWidget {
                       ],
                     )
                   else
-                    const SizedBox.shrink(), // Keeps the "Read More" pushed to the right even if no author buttons
+                    const SizedBox.shrink(), 
 
-                  // Right Group: Read More
+                  // Read More
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
@@ -224,4 +245,45 @@ class ForumBox extends StatelessWidget {
       ),
     );
   }
+
+  void _showDeleteDialog(BuildContext context, CookieRequest request) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Thread"),
+        content: const Text("Are you sure you want to delete this thread? This action cannot be undone."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              final response = await request.postJson(
+                "http://localhost:8000/forum/delete/${forum.id}/",
+                jsonEncode({}),
+              );
+
+              if (context.mounted) {
+                if (response['message'] == 'Thread deleted successfully!') {
+                  Navigator.pop(context); 
+                  refresh(); 
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Thread deleted successfully!")),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(response['message'] ?? "Error deleting thread")),
+                  );
+                  Navigator.pop(context); 
+                }
+              }
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+  
 }
