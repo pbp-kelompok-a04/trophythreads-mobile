@@ -5,6 +5,7 @@ import '../models/merchandise_entry.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:trophythreads_mobile/features/review/screens/review_list_page.dart';
+import 'package:trophythreads_mobile/features/review/screens/add_review_.dart';
 import 'package:trophythreads_mobile/features/cart/services/cart_service.dart';
 import 'package:trophythreads_mobile/features/cart/screens/cart_list.dart';
 import 'package:trophythreads_mobile/features/cart/screens/checkout_page.dart';
@@ -727,9 +728,21 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     const Spacer(),
                     TextButton(
                       onPressed: () {
-                        _showToast('Navigate to all reviews', Colors.blue);
+                        // Navigate ke Review List Page
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ReviewListPage(
+                              productId: widget.merchandise.pk.toString(),
+                              productName: widget.merchandise.fields.name,
+                            ),
+                          ),
+                        );
                       },
-                      child: const Text('See All'),
+                      child: const Text(
+                        'See All Reviews →',
+                        style: TextStyle(color: Color(0xFFE93C49)),
+                      ),
                     ),
                   ],
                 ),
@@ -783,15 +796,28 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
-                        onPressed: () {
-                          _showToast('Navigate to write review', Colors.blue);
-                        },
-                        icon: const Icon(Icons.edit),
-                        label: const Text('Write a Review'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFEA580C),
-                        ),
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddReviewPage(
+                              productId: widget.merchandise.pk.toString(),
+                              productName: widget.merchandise.fields.name,
+                            ),
+                          ),
+                        );
+
+                        // optional: refresh page setelah submit review
+                        if (result == true && mounted) {
+                          setState(() {});
+                        }
+                      },
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Write a Review'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFEA580C),
                       ),
+                    ),
                     ],
                   ),
                 ),
