@@ -339,7 +339,6 @@ class _CartPageState extends State<CartPage> {
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       return CartItemCard(
-                        // FIXED: Tambah key untuk force rebuild
                         key: ValueKey(
                           '${cartItems[index].pk}_${cartItems[index].fields.selected}',
                         ),
