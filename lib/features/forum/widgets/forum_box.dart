@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
@@ -59,7 +58,7 @@ class ForumBox extends StatelessWidget {
                       children: [
                         // "Thread by: user78"
                         Text(
-                          'Thread by: ${forum.author}',
+                          'Thread oleh: ${forum.author}',
                           style: const TextStyle(
                             fontSize: 13,
                             color: Colors.black87,
@@ -78,7 +77,7 @@ class ForumBox extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'replies: ${forum.replies}',
+                              'balasan: ${forum.replies}',
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey,
@@ -152,7 +151,7 @@ class ForumBox extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Latest Post',
+                      'Post Terkini',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -214,7 +213,7 @@ class ForumBox extends StatelessWidget {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                           ),
-                          child: const Text('Delete', style: TextStyle(color: Colors.red, fontSize: 13)),
+                          child: const Text('Hapus', style: TextStyle(color: Colors.red, fontSize: 13)),
                         ),
                       ],
                     )
@@ -233,7 +232,7 @@ class ForumBox extends StatelessWidget {
                     ),
                     onPressed: onTap,
                     child: const Text(
-                      'Read More',
+                      'Baca',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -250,8 +249,8 @@ class ForumBox extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Delete Thread"),
-        content: const Text("Are you sure you want to delete this thread? This action cannot be undone."),
+        title: const Text("Hapus Thread"),
+        content: const Text("Yakin menghapus thread? Penghapusan bersifat permanen."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -269,7 +268,7 @@ class ForumBox extends StatelessWidget {
                   Navigator.pop(context); 
                   refresh(); 
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Thread deleted successfully!")),
+                    const SnackBar(content: Text("Thread dihapus!")),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(

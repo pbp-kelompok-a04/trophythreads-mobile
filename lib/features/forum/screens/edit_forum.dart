@@ -55,15 +55,15 @@ class _EditForumPageState extends State<EditForumPage> {
                 style: TextStyle(color: Colors.grey, fontSize: 14)),
               const SizedBox(height: 20),
               
-              const Text("Title", style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text("Judul", style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _titleController,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  hintText: "Enter title",
+                  hintText: "Masukkan judul",
                 ),
-                validator: (value) => value!.isEmpty ? "Title cannot be empty" : null,
+                validator: (value) => value!.isEmpty ? "Juddl tidak boleh kosong" : null,
               ),
               const SizedBox(height: 20),
               
@@ -74,9 +74,9 @@ class _EditForumPageState extends State<EditForumPage> {
                 maxLines: 8,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  hintText: "Enter content",
+                  hintText: "Masukkan content",
                 ),
-                validator: (value) => value!.isEmpty ? "Content cannot be empty" : null,
+                validator: (value) => value!.isEmpty ? "Content tidak boleh kosong" : null,
               ),
               const Spacer(),
               
@@ -90,7 +90,7 @@ class _EditForumPageState extends State<EditForumPage> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       onPressed: () => Navigator.pop(context),
-                      child: const Text("Cancel", style: TextStyle(color: Colors.red)),
+                      child: const Text("Batalkan", style: TextStyle(color: Colors.red)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -114,20 +114,20 @@ class _EditForumPageState extends State<EditForumPage> {
                           if (context.mounted) {
                             if (response['message'] == 'Thread updated successfully!') {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Changes saved!")),
+                                const SnackBar(content: Text("Edit disimpan!")),
                               );
                               Navigator.of(context).pushReplacement(
                                 MaterialPageRoute(builder: (context) => ForumListPage()),
                               );
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(response['error'] ?? "Failed to save")),
+                                SnackBar(content: Text(response['error'] ?? "Gagal menyimpan")),
                               );
                             }
                           }
                         }
                       },
-                      child: const Text("Save Changes", style: TextStyle(color: Colors.white)),
+                      child: const Text("Simpan edit", style: TextStyle(color: Colors.white)),
                     ),
                   ),
                 ],
