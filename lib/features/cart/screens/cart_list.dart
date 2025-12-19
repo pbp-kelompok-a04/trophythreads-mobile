@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:trophythreads_mobile/features/cart/screens/checkout_page.dart';
 import '../models/cart_entry.dart';
 import '../widgets/cart_item_card.dart';
+import '../services/cart_service.dart';
+import 'package:trophythreads_mobile/features/favorites/screens/favorites_page.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({Key? key}) : super(key: key);
@@ -13,63 +18,81 @@ class _CartPageState extends State<CartPage> {
   List<CartItem> cartItems = [];
   bool _isLoading = true;
   bool _selectAll = false;
+  late CartService _cartService;
 
   @override
   void initState() {
     super.initState();
-    _fetchCartItems();
+    // Initialize service after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final request = context.read<CookieRequest>();
+      _cartService = CartService(request);
+      _fetchCartItems();
+    });
   }
 
   Future<void> _fetchCartItems() async {
-    setState(() {
-      cartItems = [
-        CartItem(
-          model: "cartApp.cart_item",
-          pk: 1,
-          fields: Fields(
-            cart: 1,
-            product: "prod-123",
-            productName: "Erigo Thomas 2025 Jersey Player Issue Home",
-            productPrice: 1299000,
-            productThumbnail:
-                "https://www.fativa.id/wp-content/uploads/2024/04/2-1.jpeg",
-            productStock: 22,
-            quantity: 1,
-            selected: false,
-          ),
-        ),
-        CartItem(
-          model: "cartApp.cart_item",
-          pk: 2,
-          fields: Fields(
-            cart: 1,
-            product: "prod-124",
-            productName:
-                "Stylish Casual Sweater Premium Quality worn by Mbappe",
-            productPrice: 450000,
-            productThumbnail:
-                "https://www.fativa.id/wp-content/uploads/2024/04/2-1.jpeg",
-            productStock: 15,
-            quantity: 1,
-            selected: false,
-          ),
-        ),
-      ];
-      _isLoading = false;
-    });
+    setState(() => _isLoading = true);
+
+    try {
+      final items = await _cartService.fetchCartItems();
+      setState(() {
+        cartItems = items;
+        _isLoading = false;
+        // Update select all checkbox based on items
+        _selectAll =
+            cartItems.isNotEmpty &&
+            cartItems.every((item) => item.fields.selected);
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load cart: ${e.toString()}')),
+        );
+      }
+    }
   }
 
-  void _toggleSelectAll(bool? value) {
+  Future<void> _toggleSelectAll(bool? value) async {
+    final selected = value ?? false;
+
+    // Optimistic update
     setState(() {
-      _selectAll = value ?? false;
+      _selectAll = selected;
       for (var item in cartItems) {
-        item.fields.selected = _selectAll;
+        item.fields.selected = selected;
       }
     });
+
+    // Send to server
+    final result = await _cartService.toggleSelectAll(selected);
+
+    if (!result['success']) {
+      // Revert on failure
+      setState(() {
+        _selectAll = !selected;
+        for (var item in cartItems) {
+          item.fields.selected = !selected;
+        }
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Failed to update selection'),
+            backgroundColor: const Color(0xFFE93C49),
+          ),
+        );
+      }
+    }
   }
 
-  void _deleteItem(int index) {
-    showDialog(
+  Future<void> _deleteItem(int index) async {
+    final item = cartItems[index];
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return Dialog(
@@ -89,7 +112,7 @@ class _CartPageState extends State<CartPage> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Apakah kamu yakin mau menghapus item ini dari keranjang (づ･｡･)？',
+                  'Apakah kamu yakin mau menghapus item ini dari keranjang (づ •. •)?',
                   style: TextStyle(fontSize: 16, height: 1.3),
                 ),
                 const SizedBox(height: 16),
@@ -97,7 +120,7 @@ class _CartPageState extends State<CartPage> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => Navigator.pop(context, false),
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: Colors.grey.shade400),
                         shape: RoundedRectangleBorder(
@@ -117,20 +140,7 @@ class _CartPageState extends State<CartPage> {
                     ),
                     const SizedBox(width: 10),
                     ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          cartItems.removeAt(index);
-                          _selectAll =
-                              cartItems.isNotEmpty &&
-                              cartItems.every((i) => i.fields.selected);
-                        });
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Item berhasil dihapus'),
-                          ),
-                        );
-                      },
+                      onPressed: () => Navigator.pop(context, true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE93C49),
                         shape: RoundedRectangleBorder(
@@ -157,6 +167,34 @@ class _CartPageState extends State<CartPage> {
         );
       },
     );
+
+    if (confirmed != true) return;
+
+    // Delete from server
+    final result = await _cartService.deleteCartItem(item.pk);
+
+    if (result['success']) {
+      setState(() {
+        cartItems.removeAt(index);
+        _selectAll =
+            cartItems.isNotEmpty && cartItems.every((i) => i.fields.selected);
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Item berhasil dihapus')));
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Failed to delete item'),
+            backgroundColor: const Color(0xFFE93C49),
+          ),
+        );
+      }
+    }
   }
 
   int _getSelectedItemsCount() {
@@ -182,7 +220,7 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
-  void _proceedToCheckout() {
+  Future<void> _proceedToCheckout() async {
     final selectedItems = cartItems
         .where((item) => item.fields.selected)
         .toList();
@@ -197,9 +235,13 @@ class _CartPageState extends State<CartPage> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Checkout ${selectedItems.length} item')),
-    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CheckoutPage()),
+    ).then((_) {
+      // Refresh cart setelah kembali dari checkout
+      _fetchCartItems();
+    });
   }
 
   @override
@@ -253,7 +295,14 @@ class _CartPageState extends State<CartPage> {
                   ),
                 ),
                 InkWell(
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const FavoritesPage(),
+                      ),
+                    );
+                  },
                   child: const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 6),
                     child: Icon(
@@ -273,38 +322,64 @@ class _CartPageState extends State<CartPage> {
           ? const Center(child: CircularProgressIndicator())
           : cartItems.isEmpty
           ? _buildEmptyCart()
-          : Padding(
-              padding: const EdgeInsets.all(16),
-              child: Container(
+          : RefreshIndicator(
+              onRefresh: _fetchCartItems,
+              child: Padding(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFCECE),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: ListView.separated(
-                  itemCount: cartItems.length,
-                  shrinkWrap: true,
-                  physics: const BouncingScrollPhysics(),
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    return CartItemCard(
-                      cartItem: cartItems[index],
-                      onDelete: () => _deleteItem(index),
-                      onSelectedChanged: (value) {
-                        setState(() {
-                          cartItems[index].fields.selected = value ?? false;
-                          _selectAll =
-                              cartItems.isNotEmpty &&
-                              cartItems.every((item) => item.fields.selected);
-                        });
-                      },
-                      onQuantityChanged: (newQuantity) {
-                        setState(() {
-                          cartItems[index].fields.quantity = newQuantity;
-                        });
-                      },
-                    );
-                  },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFCECE),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ListView.separated(
+                    itemCount: cartItems.length,
+                    shrinkWrap: true,
+                    physics: const BouncingScrollPhysics(),
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      return CartItemCard(
+                        key: ValueKey(
+                          '${cartItems[index].pk}_${cartItems[index].fields.selected}',
+                        ),
+                        cartItem: cartItems[index],
+                        cartService: _cartService,
+                        onDelete: () => _deleteItem(index),
+                        onSelectedChanged: (value) async {
+                          // Optimistic update
+                          setState(() {
+                            cartItems[index].fields.selected = value ?? false;
+                            _selectAll =
+                                cartItems.isNotEmpty &&
+                                cartItems.every((item) => item.fields.selected);
+                          });
+
+                          // Send to server
+                          final result = await _cartService.toggleSelectItem(
+                            cartItems[index].pk,
+                          );
+
+                          if (!result['success']) {
+                            // Revert on failure
+                            setState(() {
+                              cartItems[index].fields.selected =
+                                  !(value ?? false);
+                              _selectAll =
+                                  cartItems.isNotEmpty &&
+                                  cartItems.every(
+                                    (item) => item.fields.selected,
+                                  );
+                            });
+                          }
+                        },
+                        onQuantityChanged: (newQuantity) {
+                          setState(() {
+                            cartItems[index].fields.quantity = newQuantity;
+                          });
+                        },
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -321,7 +396,7 @@ class _CartPageState extends State<CartPage> {
           children: [
             const SizedBox(height: 24),
             const Text(
-              'Belum ada produk di Keranjang(｡´︶`｡)',
+              'Belum ada produk di Keranjang (｡´︶`｡)',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 20,

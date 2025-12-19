@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/cart_entry.dart';
+import '../services/cart_service.dart';
 
 class CartItemCard extends StatefulWidget {
   final CartItem cartItem;
+  final CartService cartService;
   final VoidCallback onDelete;
   final Function(bool?) onSelectedChanged;
   final Function(int) onQuantityChanged;
@@ -10,6 +12,7 @@ class CartItemCard extends StatefulWidget {
   const CartItemCard({
     Key? key,
     required this.cartItem,
+    required this.cartService,
     required this.onDelete,
     required this.onSelectedChanged,
     required this.onQuantityChanged,
@@ -22,10 +25,11 @@ class CartItemCard extends StatefulWidget {
 class _CartItemCardState extends State<CartItemCard> {
   late int _quantity;
   late bool _isSelected;
+  bool _isUpdating = false;
 
   // sizing constants
   static const double _imageSize = 110;
-  static const double _checkboxSize = 42;
+  static const double _checkboxSize = 28;
 
   @override
   void initState() {
@@ -47,30 +51,91 @@ class _CartItemCardState extends State<CartItemCard> {
     }
   }
 
-  void _decrementQuantity() {
-    if (_quantity > 1) {
-      setState(() {
-        _quantity--;
-      });
-      widget.onQuantityChanged(_quantity);
+  Future<void> _decrementQuantity() async {
+    if (_isUpdating) return;
+
+    if (_quantity <= 1) {
+      // Show delete confirmation instead
+      widget.onDelete();
+      return;
     }
+
+    setState(() => _isUpdating = true);
+
+    // Optimistic update
+    final oldQuantity = _quantity;
+    setState(() => _quantity--);
+    widget.onQuantityChanged(_quantity);
+
+    // Send to server
+    final result = await widget.cartService.updateCartItem(
+      itemId: widget.cartItem.pk,
+      action: 'dec',
+    );
+
+    if (!result['success']) {
+      // Revert on failure
+      setState(() => _quantity = oldQuantity);
+      widget.onQuantityChanged(oldQuantity);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Failed to update quantity'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+
+    setState(() => _isUpdating = false);
   }
 
-  void _incrementQuantity() {
+  Future<void> _incrementQuantity() async {
+    if (_isUpdating) return;
+
     final stock = (widget.cartItem.fields.productStock ?? 0) as int;
-    if (_quantity < stock) {
-      setState(() {
-        _quantity++;
-      });
-      widget.onQuantityChanged(_quantity);
-    } else {
+
+    if (_quantity >= stock) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Stok tidak mencukupi'),
           duration: Duration(seconds: 2),
         ),
       );
+      return;
     }
+
+    setState(() => _isUpdating = true);
+
+    // Optimistic update
+    final oldQuantity = _quantity;
+    setState(() => _quantity++);
+    widget.onQuantityChanged(_quantity);
+
+    // Send to server
+    final result = await widget.cartService.updateCartItem(
+      itemId: widget.cartItem.pk,
+      action: 'inc',
+    );
+
+    if (!result['success']) {
+      // Revert on failure
+      setState(() => _quantity = oldQuantity);
+      widget.onQuantityChanged(oldQuantity);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Failed to update quantity'),
+            duration: const Duration(seconds: 2),
+            backgroundColor: const Color(0xFFE93C49),
+          ),
+        );
+      }
+    }
+
+    setState(() => _isUpdating = false);
   }
 
   void _toggleSelect() {
@@ -97,7 +162,7 @@ class _CartItemCardState extends State<CartItemCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white, // tiap card putih
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -112,6 +177,7 @@ class _CartItemCardState extends State<CartItemCard> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Checkbox
             SizedBox(
               height: _imageSize,
               child: Center(
@@ -149,7 +215,7 @@ class _CartItemCardState extends State<CartItemCard> {
             ),
             const SizedBox(width: 12),
 
-            // product image
+            // Product image
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: SizedBox(
@@ -184,134 +250,140 @@ class _CartItemCardState extends State<CartItemCard> {
             ),
             const SizedBox(width: 12),
 
-            // details + delete positioned
+            // Product details 
             Expanded(
-              child: Stack(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // product name
-                      Text(
-                        productName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // price
-                      Text(
-                        'Rp ${_formatPrice(productPrice)}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFE93C49),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-
-                      // stock
-                      Text(
-                        'Stok: $productStock',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: productStock > 0
-                              ? Colors.grey[600]
-                              : Colors.red,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // quantity selector
-                      Row(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: const Color(0xFFECECEC),
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                InkWell(
-                                  onTap: _decrementQuantity,
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: const Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 8,
-                                    ),
-                                    child: Icon(
-                                      Icons.remove,
-                                      size: 16,
-                                      color: Color(0xFFE93C49),
-                                    ),
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                  ),
-                                  child: Text(
-                                    '$_quantity',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                InkWell(
-                                  onTap: _incrementQuantity,
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: const Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 8,
-                                    ),
-                                    child: Icon(
-                                      Icons.add,
-                                      size: 16,
-                                      color: Color(0xFFE93C49),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                      Expanded(
+                        child: Text(
+                          productName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
                           ),
-                        ],
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      TextButton(
+                        onPressed: widget.onDelete,
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          'Hapus',
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
 
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: TextButton(
-                      onPressed: widget.onDelete,
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        'Hapus',
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                  // Price
+                  Text(
+                    'Rp ${_formatPrice(productPrice)}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFE93C49),
                     ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Stock
+                  Text(
+                    'Stok: $productStock',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: productStock > 0 ? Colors.grey[600] : Colors.red,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Quantity selector
+                  Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: const Color(0xFFECECEC)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            InkWell(
+                              onTap: _isUpdating ? null : _decrementQuantity,
+                              borderRadius: BorderRadius.circular(6),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 8,
+                                ),
+                                child: Icon(
+                                  Icons.remove,
+                                  size: 16,
+                                  color: _isUpdating
+                                      ? Colors.grey
+                                      : const Color(0xFFE93C49),
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
+                              child: _isUpdating
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      '$_quantity',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                            ),
+                            InkWell(
+                              onTap: _isUpdating ? null : _incrementQuantity,
+                              borderRadius: BorderRadius.circular(6),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 8,
+                                ),
+                                child: Icon(
+                                  Icons.add,
+                                  size: 16,
+                                  color: _isUpdating
+                                      ? Colors.grey
+                                      : const Color(0xFFE93C49),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

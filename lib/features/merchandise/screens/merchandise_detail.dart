@@ -192,24 +192,21 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
   }
 
-  // Method async untuk menambahkan produk ke cart menggunakan CartService
+  // Add to Cart menggunakan CartService
   Future<void> _addToCart() async {
     // Set loading state
     setState(() => _isLoadingCart = true);
 
     try {
-      // Panggil method addToCart dari CartService
       final result = await _cartService.addToCart(
         productId: widget.merchandise.pk,
         quantity: _quantity,
       );
 
-      // Jika berhasil, tampilkan toast dan reload cart count
       if (result['success'] == true) {
         _showToast('Product added to cart!', Colors.green);
         await _loadCartCount();
       } else {
-        // Jika gagal, tampilkan pesan error
         _showToast(result['message'] ?? 'Failed to add to cart', Colors.red);
       }
     } catch (e) {
@@ -222,7 +219,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
   }
 
-  // Method async untuk Buy Now - langsung ke checkout menggunakan CartService
+  // Buy Now menggunakan CartService dan navigasi ke CheckoutPage
   Future<void> _buyNow() async {
     // Set loading state
     setState(() => _isLoadingCart = true);
@@ -234,10 +231,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         quantity: _quantity,
       );
 
-      // Reset loading state
       setState(() => _isLoadingCart = false);
 
-      // Jika berhasil, navigasi ke CheckoutPage
       if (result['success'] == true) {
         if (mounted) {
           Navigator.push(
@@ -246,11 +241,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           );
         }
       } else {
-        // Jika gagal, tampilkan pesan error
         _showToast(result['message'] ?? 'Failed to proceed', Colors.red);
       }
     } catch (e) {
-      // Reset loading state dan tampilkan error
       setState(() => _isLoadingCart = false);
       _showToast('An error occurred', Colors.red);
       debugPrint('Error buying now: $e');
@@ -335,7 +328,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             icon: const Icon(Icons.favorite),
             color: Colors.red,
             onPressed: () {
-              _showToast('Navigate to My Favorites', Colors.blue);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const FavoritesPage()),
+              );
             },
           ),
 
@@ -1093,6 +1089,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           backgroundColor: const Color(0xFFEA580C),
                         ),
                       ),
+                    ),
                     ],
                   ),
                 ),
