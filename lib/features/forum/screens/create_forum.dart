@@ -30,7 +30,7 @@ class _CreateForumPageState extends State<CreateForumPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "Back to Discussions",
+          "Kembali ke diskusi",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
@@ -141,7 +141,7 @@ class _CreateForumPageState extends State<CreateForumPage> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                           onPressed: () => Navigator.pop(context),
-                          child: Text("Cancel", style: TextStyle(color: _themeRed)),
+                          child: Text("Batalkan", style: TextStyle(color: _themeRed)),
                         ),
                         const SizedBox(width: 16), 
 
@@ -167,7 +167,7 @@ class _CreateForumPageState extends State<CreateForumPage> {
                               if (context.mounted) {
                                 if (response['status'] == 'success') {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Thread successfully saved!")),
+                                    const SnackBar(content: Text("Thread tersimpan!")),
                                   );
                                   Navigator.pushReplacement(
                                     context,
@@ -177,19 +177,19 @@ class _CreateForumPageState extends State<CreateForumPage> {
                                 // Handle the Unauthorized (401) case specifically
                                 else if (response['status'] == 'error' && response['message'] == 'Login required') {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Session expired. Please log in again.")),
+                                    const SnackBar(content: Text("Session habis. Log in kembali.")),
                                   );
                                   // Optional: Redirect to login screen here
                                 } 
                                 else {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(response['message'] ?? "An error occurred.")),
+                                    SnackBar(content: Text(response['message'] ?? "Terjadi sebuah error.")),
                                   );
                                 }
                               }
                             }
                           },
-                          child: const Text("Create Thread", style: TextStyle(color: Colors.white)),
+                          child: const Text("Buat Thread", style: TextStyle(color: Colors.white)),
                         ),
                       ],
                     ),

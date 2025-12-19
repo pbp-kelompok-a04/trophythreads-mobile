@@ -3,18 +3,23 @@ import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'dart:convert';
 
-// Import necessary models and widgets
 import 'package:trophythreads_mobile/features/forum/models/forum.dart';
 import 'package:trophythreads_mobile/features/forum/models/comment.dart';
-import 'package:trophythreads_mobile/features/forum/widgets/comment_box.dart'; // The widget below
+import 'package:trophythreads_mobile/features/forum/widgets/comment_box.dart';
+import 'package:trophythreads_mobile/features/auth/screens/login.dart';
 
-const String _BASE_URL = "http://localhost:8000/"; 
+const String _BASE_URL = "http://localhost:8000/";
 
 class ForumDetail extends StatefulWidget {
   final String threadId;
-  
-  const ForumDetail({required this.threadId, super.key});
-  
+  final String? currentUser;
+
+  const ForumDetail({
+    required this.threadId,
+    super.key,
+    required this.currentUser,
+  });
+
   @override
   State<ForumDetail> createState() => _ForumDetailState();
 }
@@ -22,7 +27,7 @@ class ForumDetail extends StatefulWidget {
 class _ForumDetailState extends State<ForumDetail> {
   // Controller for the new comment text field
   final TextEditingController _commentController = TextEditingController();
-  
+
   late Future<Map<String, dynamic>> _threadDataFuture;
 
   @override
@@ -49,45 +54,42 @@ class _ForumDetailState extends State<ForumDetail> {
   // --- DATA FETCHING ---
   Future<Map<String, dynamic>> _fetchThreadAndComments() async {
     final request = context.read<CookieRequest>();
-    
-    // Fetch Thread Details 
+
+    // Fetch Thread Details
     final threadUrl = '$_BASE_URL/forum/json/${widget.threadId}/';
     final threadResponse = await request.get(threadUrl);
-    
+
     final Forum thread = Forum.fromJson(threadResponse);
 
-    // Fetch Comments List 
+    // Fetch Comments List
     final commentsUrl = '$_BASE_URL/forum/${widget.threadId}/comments/';
     final commentsResponse = await request.get(commentsUrl);
 
     List<Comment> comments = [];
-    
+
     if (commentsResponse != null) {
-        comments = List<Comment>.from(
-            commentsResponse.map((x) => Comment.fromJson(x))
-        );
+      comments = List<Comment>.from(
+        commentsResponse.map((x) => Comment.fromJson(x)),
+      );
     }
 
-    return {
-      'thread': thread,
-      'comments': comments,
-    };
+    return {'thread': thread, 'comments': comments};
   }
-  
+
   // --- COMMENT SUBMISSION ---
   Future<void> _submitComment() async {
     final request = context.read<CookieRequest>();
     final content = _commentController.text.trim();
-    
+
     if (content.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Comment cannot be empty.")),
+        const SnackBar(content: Text("Comment tidak boleh kosong.")),
       );
       return;
     }
 
     final submitUrl = '$_BASE_URL/forum/${widget.threadId}/comments/create/';
-    
+
     try {
       final response = await request.postJson(
         submitUrl,
@@ -101,18 +103,22 @@ class _ForumDetailState extends State<ForumDetail> {
           _threadDataFuture = _fetchThreadAndComments(); // Re-fetch all data
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Comment posted successfully!")),
+          const SnackBar(content: Text("Comment berhasil dipost!")),
         );
       } else {
         // Failure
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to post comment: ${response['error'] ?? 'Unknown error'}")),
+          SnackBar(
+            content: Text(
+              "Gagal post comment: ${response['error'] ?? 'Unknown error'}",
+            ),
+          ),
         );
       }
     } catch (e) {
-       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Network error: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Network error: $e")));
     }
   }
 
@@ -133,10 +139,10 @@ class _ForumDetailState extends State<ForumDetail> {
             ),
           ),
           const SizedBox(height: 8),
-          
+
           // Author & Created Info
           Text(
-            'Author: ${thread.author} | Created: ${_formatDate(thread.createdAt)}',
+            'Author: ${thread.author} | Dibuat: ${_formatDate(thread.createdAt)}',
             style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           ),
           const SizedBox(height: 15),
@@ -146,7 +152,6 @@ class _ForumDetailState extends State<ForumDetail> {
             style: const TextStyle(fontSize: 16, height: 1.5),
           ),
           const Divider(height: 30, thickness: 0.1),
-
         ],
       ),
     );
@@ -165,7 +170,7 @@ class _ForumDetailState extends State<ForumDetail> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Post a Comment',
+                'Post Sebuah Comment',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
@@ -174,7 +179,7 @@ class _ForumDetailState extends State<ForumDetail> {
                 controller: _commentController,
                 maxLines: 5,
                 decoration: InputDecoration(
-                  hintText: 'Type your comment here...',
+                  hintText: 'Ketik commentmu di sini...',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide(color: Colors.grey[300]!),
@@ -194,10 +199,26 @@ class _ForumDetailState extends State<ForumDetail> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
                   ),
-                  onPressed: _submitComment,
-                  child: const Text('Submit Comment', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onPressed: () async {
+                    // Check if user is guest
+                    if (await LoginPageState.isGuest()) {
+                      await LoginPageState.canPerformAction(
+                        context,
+                        'buat comment',
+                      );
+                    } else {
+                      _submitComment();
+                    }
+                  },
+                  child: const Text(
+                    'Submit Comment',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],
@@ -212,7 +233,7 @@ class _ForumDetailState extends State<ForumDetail> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Back to discussions'),
+        title: const Text('Kembali ke diskusi'),
         centerTitle: false,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -226,44 +247,56 @@ class _ForumDetailState extends State<ForumDetail> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error loading data: ${snapshot.error}'));
+            return Center(child: Text('Error memuat data: ${snapshot.error}'));
           }
 
           final Forum thread = snapshot.data!['thread'];
           final List<Comment> comments = snapshot.data!['comments'];
-          
+
           return SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. Thread Content (Title, Author, Main Text)
+                // Title, Author, Main Text
                 _buildThreadContent(thread),
-                
-                // 2. Comment Submission Form
+
+                // Comment Submission Form
                 _buildCommentForm(),
-                
+
                 const SizedBox(height: 30),
 
-                // 3. Comments Header
+                // Comments Header
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Text(
                     'Comments (${comments.length})',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
-                
-                // 4. Comments List
+
+                // Comments List
                 ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: comments.length,
                   itemBuilder: (context, index) {
-                    return CommentBox(comment: comments[index]);
+                    return CommentBox(
+                      comment: comments[index],
+                      currentUser: widget.currentUser,
+                      refresh: () {
+                        // Refresh data after edit/delete
+                        setState(() {
+                          _threadDataFuture = _fetchThreadAndComments();
+                        });
+                      },
+                    );
                   },
                 ),
-                const SizedBox(height: 40), // Bottom padding
+                const SizedBox(height: 40),
               ],
             ),
           );
