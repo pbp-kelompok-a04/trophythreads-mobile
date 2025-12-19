@@ -243,7 +243,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             icon: const Icon(Icons.favorite),
             color: Colors.red,
             onPressed: () {
-              _showToast('Navigate to My Favorites', Colors.blue);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const FavoritesPage()),
+              );
             },
           ),
 
@@ -796,26 +799,27 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
-                      onPressed: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AddReviewPage(
-                              productId: widget.merchandise.pk.toString(),
-                              productName: widget.merchandise.fields.name,
+                        onPressed: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddReviewPage(
+                                productId: widget.merchandise.pk.toString(),
+                                productName: widget.merchandise.fields.name,
+                              ),
                             ),
-                          ),
-                        );
+                          );
 
-                        // optional: refresh page setelah submit review
-                        if (result == true && mounted) {
-                          setState(() {});
-                        }
-                      },
-                      icon: const Icon(Icons.edit),
-                      label: const Text('Write a Review'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEA580C),
+                          // optional: refresh page setelah submit review
+                          if (result == true && mounted) {
+                            setState(() {});
+                          }
+                        },
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Write a Review'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFEA580C),
+                        ),
                       ),
                     ),
                     ],
