@@ -1,18 +1,19 @@
+// Import package Flutter Material Design untuk komponen UI
 import 'package:flutter/material.dart';
+// Import model MerchandiseEntry untuk struktur data merchandise
 import '../models/merchandise_entry.dart';
 
-/// MerchandiseEntryCard
-/// Meniru tampilan kartu merchandise di web: thumbnail (cover), category badge,
-/// status badges (Featured/Hot), nama produk, harga, rating, stock,
-/// dan tombol Edit/Delete jika user adalah owner atau seller.
+// Widget StatelessWidget untuk menampilkan card merchandise
+// Card ini menampilkan informasi produk seperti gambar, nama, harga, rating, dan stok
 class MerchandiseEntryCard extends StatelessWidget {
-  final MerchandiseEntry merchandise;
-  final VoidCallback? onTap;
-  final void Function(String id)? onEdit;
-  final void Function(String id)? onDelete;
-  final String? currentUserId; // optional, untuk cek owner
-  final String? currentUserRole; // optional, untuk cek seller
+  final MerchandiseEntry merchandise; // Data merchandise yang akan ditampilkan
+  final VoidCallback? onTap; // Callback saat card di-tap (opsional)
+  final void Function(String id)? onEdit; // Callback untuk edit merchandise (opsional)
+  final void Function(String id)? onDelete; // Callback untuk delete merchandise (opsional)
+  final String? currentUserId; // ID user yang sedang login (opsional, untuk cek owner)
+  final String? currentUserRole; // Role user yang sedang login (opsional, untuk cek seller)
 
+  // Constructor dengan parameter required untuk merchandise dan opsional untuk callbacks
   const MerchandiseEntryCard({
     super.key,
     required this.merchandise,
@@ -23,287 +24,282 @@ class MerchandiseEntryCard extends StatelessWidget {
     this.currentUserRole,
   });
 
+  // Getter untuk mengecek apakah user adalah pemilik merchandise
   bool get _isOwner {
+    // Cek apakah currentUserId sama dengan user ID pemilik merchandise
     try {
+      // Ambil user ID pemilik dari data merchandise
       final owner = merchandise.fields.user?.toString();
+      // Jika owner null, return false
       if (owner == null) return false;
+      // Return true jika currentUserId sama dengan owner
       return currentUserId != null && currentUserId == owner;
     } catch (_) {
+      // Jika terjadi error, return false
       return false;
     }
   }
 
+  // Getter untuk mengecek apakah user bisa edit atau delete
+  // User bisa edit/delete jika dia adalah owner atau memiliki role 'seller'
   bool get _canEditOrDelete => _isOwner || (currentUserRole == 'seller');
 
+  // Method untuk memformat harga menjadi format Rupiah
   String _formatPrice(dynamic price) {
+    // Format harga dengan pemisah ribuan (titik) dan prefix 'Rp '
     try {
+      // Konversi price ke integer, handle jika tipe data num atau string
       final p = price is num ? price.toInt() : int.parse(price.toString());
-      // Simple id format (thousands separator)
+      // Format dengan regex untuk menambahkan titik sebagai pemisah ribuan
       final formatted = p.toString().replaceAllMapped(
         RegExp(r"\B(?=(\d{3})+(?!\d))"),
-        (m) => '.',
+        (m) => '.', // Ganti dengan titik
       );
+      // Return dengan prefix 'Rp '
       return 'Rp $formatted';
     } catch (_) {
+      // Jika terjadi error parsing, return format sederhana
       return 'Rp ${price ?? ''}';
     }
   }
 
+  // Method untuk membangun widget bintang rating
   Widget _buildStars(double rating) {
+    // Hitung jumlah bintang penuh (bulat ke bawah)
     final full = rating.floor();
+    // Cek apakah ada setengah bintang (jika desimal >= 0.5)
     final half = (rating - full) >= 0.5;
+    // Hitung jumlah bintang kosong (total 5 bintang)
     final empty = 5 - full - (half ? 1 : 0);
+    // List untuk menampung widget bintang
     List<Widget> stars = [];
+    // Tambahkan bintang penuh sebanyak 'full'
     for (var i = 0; i < full; i++)
       stars.add(const Icon(Icons.star, size: 14, color: Colors.amber));
+    // Tambahkan setengah bintang jika ada
     if (half)
       stars.add(const Icon(Icons.star_half, size: 14, color: Colors.amber));
+    // Tambahkan bintang kosong sebanyak 'empty'
     for (var i = 0; i < empty; i++)
       stars.add(const Icon(Icons.star_border, size: 14, color: Colors.amber));
+    // Return Row berisi semua bintang
     return Row(children: stars, mainAxisSize: MainAxisSize.min);
   }
 
+  // Method untuk membangun widget badge (label kecil dengan background)
+  Widget _badge(String text, Color bg, Color fg, {IconData? icon}) {
+    return Container(
+      // Padding dalam badge
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      // Dekorasi badge dengan background color dan border radius
+      decoration: BoxDecoration(
+        color: bg, // Background color
+        borderRadius: BorderRadius.circular(20), // Sudut melengkung
+      ),
+      // Konten badge: icon (opsional) dan text
+      child: Row(
+        mainAxisSize: MainAxisSize.min, // Row hanya sebesar kontennya
+        children: [
+          // Tampilkan icon jika disediakan
+          if (icon != null) ...[
+            Icon(icon, size: 12, color: fg), // Icon dengan warna foreground
+            const SizedBox(width: 6), // Spacing antara icon dan text
+          ],
+          // Text badge
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: fg, // Warna foreground untuk text
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Method build untuk membangun UI widget card
   @override
   Widget build(BuildContext context) {
+    // Ambil fields dari merchandise untuk akses lebih mudah
     final f = merchandise.fields;
-    final thumbnail = f.thumbnail?.isNotEmpty == true ? f.thumbnail : null;
-    final name = f.name ?? 'Unknown Product';
-    final category = (f.category ?? 'Others').toString();
-    final priceText = _formatPrice(f.price ?? 0);
-    final rating = 0.0; // Placeholder, as rating is not in the model
-    final stock = f.stock ?? 0;
-    final productViews = f.productViews ?? 0;
-    final isFeatured = f.isFeatured ?? false;
+    // Extract dan assign fields dengan null safety
+    final thumbnail = f.thumbnail?.isNotEmpty == true ? f.thumbnail : null; // URL gambar thumbnail
+    final name = f.name ?? 'Unknown Product'; // Nama produk (default jika null)
+    final category = (f.category ?? 'Others').toString(); // Kategori produk
+    final priceText = _formatPrice(f.price ?? 0); // Harga terformat dalam Rupiah
+    final rating = 0.0; // Rating produk (placeholder karena belum ada di model)
+    final stock = f.stock ?? 0; // Jumlah stok
+    final productViews = f.productViews ?? 0; // Jumlah views produk
+    final isFeatured = f.isFeatured ?? false; // Flag apakah produk featured
 
+    // Ambil theme dan color scheme dari context
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    // Build card dengan struktur utama
     return Card(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 6,
-      clipBehavior: Clip.antiAlias,
+      color: Colors.white, // Background putih
+      elevation: 2, // Bayangan card
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), // Sudut melengkung
+      clipBehavior: Clip.antiAlias, // Agar child widget terpotong sesuai border card
+      // InkWell untuk membuat card clickable dengan ripple effect
       child: InkWell(
-        onTap: onTap,
+        onTap: onTap, // Callback saat card di-tap
+        // Column untuk menyusun konten card secara vertikal
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start, // Align ke kiri
           children: [
-            // Image area with badges positioned
+            // Area gambar produk dengan badges overlay
             SizedBox(
-              height: 140,
-              width: double.infinity,
+              height: 150, // Tinggi area gambar tetap
               child: Stack(
                 children: [
+                  // Positioned.fill: gambar memenuhi seluruh area
                   Positioned.fill(
-                    child: thumbnail != null
-                        ? Image.network(
-                            thumbnail!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: Colors.grey[200],
-                              child: const Center(
-                                child: Icon(Icons.broken_image, size: 40),
-                              ),
-                            ),
-                          )
+                    child: thumbnail != null && thumbnail.isNotEmpty
+                        // Jika ada thumbnail, tampilkan gambar dari network
+                        ? Image.network(thumbnail, fit: BoxFit.cover)
+                        // Jika tidak ada thumbnail, tampilkan placeholder
                         : Container(
-                            color: Colors.grey[100],
-                            child: const Center(
-                              child: Icon(
-                                Icons.shopping_bag_outlined,
-                                size: 40,
-                                color: Colors.grey,
-                              ),
+                            color: cs.secondary.withOpacity(0.1),
+                            child: Icon(
+                              Icons.shopping_bag_outlined,
+                              size: 40,
+                              color: cs.primary,
                             ),
                           ),
                   ),
-
-                  // Category badge (top-left)
+                  // Badge kategori di pojok kiri atas
                   Positioned(
                     left: 8,
                     top: 8,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.45,
-                      ),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade700,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
-                              blurRadius: 6,
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          category[0].toUpperCase() + category.substring(1),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
+                    child: _badge(
+                      category[0].toUpperCase() + category.substring(1), // Capitalize huruf pertama
+                      cs.secondary, // Background color
+                      cs.onSecondary, // Foreground color
                     ),
                   ),
-
-                  // Status badges (top-right)
+                  // Badge featured dan hot di pojok kanan atas
                   Positioned(
                     right: 8,
                     top: 8,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
+                        // Badge 'Featured' jika produk featured
                         if (isFeatured)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            margin: const EdgeInsets.only(bottom: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.yellow.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Icon(
-                                  Icons.star,
-                                  size: 12,
-                                  color: Colors.orange,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Featured',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.brown,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          _badge(
+                            'Featured',
+                            cs.primary.withOpacity(0.15), // Background transparan
+                            cs.primary, // Foreground color primary
+                            icon: Icons.star, // Icon bintang
                           ),
-                        if (productViews > 30)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Icon(
-                                  Icons.whatshot,
-                                  size: 12,
-                                  color: Colors.red,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Hot',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.redAccent,
-                                  ),
-                                ),
-                              ],
-                            ),
+                        // Badge 'Hot' jika produk punya banyak views
+                        if (productViews > 30) ...[
+                          const SizedBox(height: 6), // Spacing
+                          _badge(
+                            'Hot',
+                            cs.error.withOpacity(0.15), // Background transparan merah
+                            cs.error, // Foreground color merah
+                            icon: Icons.whatshot, // Icon api
                           ),
+                        ],
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-            // Content area
+
+            // Area konten produk (di bawah gambar)
             Padding(
-              padding: const EdgeInsets.all(12.0),
+              padding: const EdgeInsets.all(12.0), // Padding sekeliling konten
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start, // Align ke kiri
                 children: [
-                  // Name
+                  // Nama produk
                   Text(
                     name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2, // Maksimal 2 baris
+                    overflow: TextOverflow.ellipsis, // Tambahkan '...' jika terlalu panjang
                     style: const TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w700, // Bold
                     ),
                   ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 8), // Spacing
 
-                  // Price
+                  // Harga produk
                   Text(
                     priceText,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFFB91C1C),
+                      color: Color(0xFFB91C1C), // Warna merah untuk harga
                     ),
                   ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 8), // Spacing
 
-                  // Rating and stock row
+                  // Baris rating dan stok produk
                   Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
-                    runSpacing: 2,
+                    crossAxisAlignment: WrapCrossAlignment.center, // Center vertikal
+                    spacing: 8, // Jarak horizontal antar child
+                    runSpacing: 2, // Jarak vertikal jika wrap ke baris baru
                     children: [
+                      // Widget bintang rating
                       _buildStars(rating),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 8), // Spacing
+                      // Angka rating
                       Text(
-                        (rating).toStringAsFixed(1),
+                        (rating).toStringAsFixed(1), // Format 1 desimal
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 8), // Spacing
+                      // Bullet separator
                       const Text('•'),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 8), // Spacing
+                      // Text jumlah stok
                       Text(
                         '$stock in stock',
                         style: const TextStyle(
-                          color: Colors.grey,
+                          color: Colors.grey, // Warna abu-abu
                           fontSize: 13,
                         ),
                       ),
                     ],
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 12), // Spacing
 
-                  // Action buttons (Edit/Delete) if allowed
+                  // Action buttons (Edit dan Delete) - hanya tampil jika user punya permission
                   if (_canEditOrDelete)
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.end, // Align ke kanan
                       children: [
+                        // Tombol Edit
                         TextButton(
                           onPressed: () =>
-                              onEdit?.call(currentUserId.toString()),
+                              onEdit?.call(currentUserId.toString()), // Panggil callback onEdit
                           child: const Text(
                             'Edit',
-                            style: TextStyle(color: Colors.blueAccent),
+                            style: TextStyle(color: Colors.blueAccent), // Warna biru
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 8), // Spacing antar tombol
+                        // Tombol Delete
                         TextButton(
                           onPressed: () =>
-                              onDelete?.call(currentUserId.toString()),
+                              onDelete?.call(currentUserId.toString()), // Panggil callback onDelete
                           child: const Text(
                             'Delete',
-                            style: TextStyle(color: Colors.redAccent),
+                            style: TextStyle(color: Colors.redAccent), // Warna merah
                           ),
                         ),
                       ],
