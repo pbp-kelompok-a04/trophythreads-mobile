@@ -5,6 +5,7 @@ import 'package:trophythreads_mobile/features/forum/models/forum.dart';
 import 'package:trophythreads_mobile/features/forum/widgets/forum_box.dart';
 import 'package:trophythreads_mobile/features/forum/screens/forum_details.dart';
 import 'package:trophythreads_mobile/features/forum/screens/create_forum.dart';
+import 'package:trophythreads_mobile/features/auth/screens/login.dart';
 
 enum _SelectedFilter { all, official, community }
 
@@ -86,7 +87,7 @@ class _ForumListPageState extends State<ForumListPage> {
   }
 
   // --- TAP HANDLER ---
-  void _onForumTapped(BuildContext context, Forum forum) {
+  void _onForumTapped(BuildContext context, Forum forum, String? loggedUser) {
     final request = context.read<CookieRequest>();
 
     // Increment views
@@ -94,7 +95,7 @@ class _ForumListPageState extends State<ForumListPage> {
 
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => ForumDetail(threadId: forum.id)),
+      MaterialPageRoute(builder: (context) => ForumDetail(threadId: forum.id, currentUser: loggedUser,)),
     ).then((_) {
       // Refresh the list when returning from the detail screen
       setState(() {
@@ -138,6 +139,7 @@ class _ForumListPageState extends State<ForumListPage> {
   @override
   Widget build(BuildContext context) {
     final request = context.watch<CookieRequest>();
+    final String? loggedUser = request.jsonData['username'];
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -158,7 +160,7 @@ class _ForumListPageState extends State<ForumListPage> {
                 children: [
                   // Title
                   const Text(
-                    'Discussions',
+                    'Diskusi',
                     style: TextStyle(
                       fontSize: 34,
                       fontWeight: FontWeight.w900,
@@ -177,7 +179,7 @@ class _ForumListPageState extends State<ForumListPage> {
                         child: Row(
                           children: [
                             _buildFilterButton(
-                              'All Threads',
+                              'Semua Thread',
                               _SelectedFilter.all,
                               context,
                             ),
@@ -187,7 +189,7 @@ class _ForumListPageState extends State<ForumListPage> {
                               context,
                             ),
                             _buildFilterButton(
-                              'Community',
+                              'Komunitas',
                               _SelectedFilter.community,
                               context,
                             ),
@@ -208,14 +210,21 @@ class _ForumListPageState extends State<ForumListPage> {
                             vertical: 10, 
                           ),
                         ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const CreateForumPage()),
-                          );
+                        onPressed: () async {
+                          // Check if user is guest
+                          if (await LoginPageState.isGuest()) {
+                            await LoginPageState.canPerformAction(context, 'buat thread');
+                          } else {
+                            if (context.mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const CreateForumPage()),
+                              );
+                            }
+                          }
                         },
                         child: const Text(
-                          'Create Thread',
+                          'Buat Thread',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -272,12 +281,11 @@ class _ForumListPageState extends State<ForumListPage> {
                           itemCount: data.length,
                           itemBuilder: (_, index) {
                             final forum = data[index];
-                            final String? loggedUser = request.jsonData['username'];
 
                             return ForumBox(
                               forum: forum,
                               currentUser: loggedUser,
-                              onTap: () => _onForumTapped(context, forum),
+                              onTap: () => _onForumTapped(context, forum, loggedUser),
                               refresh: _refreshList,
                             );
                           },
