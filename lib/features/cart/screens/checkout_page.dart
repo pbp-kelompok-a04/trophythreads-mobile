@@ -28,7 +28,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   // Payment method selections
   String _paymentCategory = 'ewallet'; // ewallet, bca, bri
-  String _paymentMethod = 'gopay'; // inisiasi awal
+  String _paymentMethod = 'gopay'; // gopay, ovo, flip
 
   @override
   void initState() {
@@ -211,68 +211,39 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Address Section with #FFCECE background
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFCECE),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: _buildAddressSection(),
-                  ),
-                  const SizedBox(height: 12),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFCECE),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Address Section
+                    _buildAddressSection(),
+                    const SizedBox(height: 12),
 
-                  // Items List with #FFCECE background
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFCECE),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
+                    // Items List
+                    Column(
                       children: _items
                           .map((item) => _buildItemCard(item))
                           .toList(),
                     ),
-                  ),
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
 
-                  // Total Products with #FFCECE background
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFCECE),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: _buildTotalProductsCard(),
-                  ),
-                  const SizedBox(height: 12),
+                    // Total Products
+                    _buildTotalProductsCard(),
+                    const SizedBox(height: 12),
 
-                  // Payment Method
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFCECE),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: _buildPaymentMethodCard(),
-                  ),
-                  const SizedBox(height: 12),
+                    // Payment Method
+                    _buildPaymentMethodCard(),
+                    const SizedBox(height: 12),
 
-                  // Payment Summary
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFCECE),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: _buildPaymentSummaryCard(),
-                  ),
-                  const SizedBox(height: 100),
-                ],
+                    // Payment Summary
+                    _buildPaymentSummaryCard(),
+                  ],
+                ),
               ),
             ),
       bottomNavigationBar: _buildBottomBar(),
