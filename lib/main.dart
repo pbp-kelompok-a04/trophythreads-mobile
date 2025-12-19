@@ -48,7 +48,7 @@ class MyApp extends StatelessWidget {
             onError: Colors.white,
           ),
         ),
-        home: ProductDetailPage(),
+        home: LoginPage(),
       ),
     );
   }

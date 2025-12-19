@@ -821,6 +821,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           backgroundColor: const Color(0xFFEA580C),
                         ),
                       ),
+                    ),
                     ],
                   ),
                 ),
