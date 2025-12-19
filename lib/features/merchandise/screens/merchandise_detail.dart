@@ -1,76 +1,123 @@
+// Imoirt yang diperlukan
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
 import '../models/merchandise_entry.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:trophythreads_mobile/main.dart';
 import 'package:trophythreads_mobile/features/review/screens/review_list_page.dart';
 import 'package:trophythreads_mobile/features/review/screens/add_review_page.dart';
 import 'package:trophythreads_mobile/features/cart/services/cart_service.dart';
 import 'package:trophythreads_mobile/features/cart/screens/cart_list.dart';
 import 'package:trophythreads_mobile/features/cart/screens/checkout_page.dart';
 import 'package:trophythreads_mobile/features/favorites/screens/favorites_page.dart';
+import 'package:trophythreads_mobile/features/auth/screens/login.dart';
 
+// Widget StatefulWidget untuk halaman detail produk merchandise
+// Halaman ini menampilkan informasi lengkap produk termasuk gambar, harga, deskripsi, dan review
 class ProductDetailPage extends StatefulWidget {
-  final MerchandiseEntry merchandise;
+  final MerchandiseEntry merchandise; // Data merchandise yang akan ditampilkan
 
+  // Constructor dengan required parameter merchandise
   const ProductDetailPage({Key? key, required this.merchandise})
     : super(key: key);
 
+  // Method untuk membuat state dari widget ini
   @override
   State<ProductDetailPage> createState() => _ProductDetailPageState();
 }
 
+// State class untuk ProductDetailPage
 class _ProductDetailPageState extends State<ProductDetailPage> {
-  int _quantity = 1;
-  bool _isFavorite = false;
-  String? _favoriteId;
-  bool _isLoadingFavorite = false;
-  bool _isLoadingCart = false;
-  int _cartCount = 0;
+  // State variables untuk quantity dan favorite
+  int _quantity = 1; // Jumlah produk yang akan dibeli
+  bool _isFavorite = false; // Status apakah produk sudah di-favorite
+  String? _favoriteId; // ID favorite dari server
+  bool _isLoadingFavorite = false; // Loading state untuk operasi favorite
+  bool _isLoadingCart = false; // Loading state untuk operasi cart
+  int _cartCount = 0; // Jumlah item di cart
 
+  // List untuk menyimpan reviews (placeholder)
   final List<Map<String, dynamic>> _reviews = [];
-  String? _ratingFilter;
+  String? _ratingFilter; // Filter rating yang dipilih user
+  bool _isGuest = false; // Status apakah user adalah guest (belum login)
 
+  // Service untuk operasi cart
   late CartService _cartService;
 
+  // Method initState dipanggil saat widget pertama kali dibuat
   @override
   void initState() {
     super.initState();
+    // Cek apakah user adalah guest
+    _checkGuestStatus();
+    // Cek status favorite produk dari server
     _checkFavoriteStatus();
+    // Load jumlah item di cart
     _loadCartCount();
+    // Inisialisasi CartService setelah frame pertama di-render
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final request = context.read<CookieRequest>();
       _cartService = CartService(request);
     });
   }
 
+  // Method async untuk mengecek apakah user adalah guest (belum login)
+  Future<void> _checkGuestStatus() async {
+    final isGuest = await LoginPageState.isGuest();
+    setState(() {
+      _isGuest = isGuest;
+    });
+  }
+
+  // Method untuk mendapatkan URL lengkap gambar produk
   String _getImageUrl(String? thumbnail) {
+    // Jika thumbnail null atau kosong, return string kosong
     if (thumbnail == null || thumbnail.isEmpty) return '';
+    // Jika thumbnail sudah URL lengkap (dimulai dengan http), return langsung
     if (thumbnail.startsWith('http')) return thumbnail;
 
+    // Tentukan host berdasarkan platform
     final host = kIsWeb
-        ? 'http://localhost:8000'
+        ? 'http://localhost:8000' // Web menggunakan localhost
         : (Platform.isAndroid
-              ? 'http://10.0.2.2:8000'
-              : 'http://localhost:8000');
+              ? 'http://10.0.2.2:8000' // Android emulator menggunakan 10.0.2.2
+              : 'http://localhost:8000'); // iOS menggunakan localhost
+    // Gabungkan host dengan thumbnail path
     return '$host$thumbnail';
   }
 
+  // Method untuk memformat harga menjadi format Rupiah dengan pemisah ribuan
   String _formatPrice(int price) {
+    // Format harga dengan regex untuk menambahkan titik sebagai pemisah ribuan
     final formatted = price.toString().replaceAllMapped(
       RegExp(r"\B(?=(\d{3})+(?!\d))"),
-      (m) => '.',
+      (m) => '.', // Ganti dengan titik
     );
+    // Return dengan prefix 'Rp '
     return 'Rp $formatted';
   }
 
+  // Method untuk memformat deskripsi dari HTML ke plain text
+  // Mengubah tag <br> menjadi line break (\n)
+  String _formatDescription(String description) {
+    return description
+        .replaceAll('<br><br>', '\n\n') // Double br menjadi double newline
+        .replaceAll('<br>', '\n') // Single br menjadi single newline
+        .replaceAll('<BR><BR>', '\n\n') // Double BR uppercase
+        .replaceAll('<BR>', '\n'); // Single BR uppercase
+  }
+
+  // Method async untuk mengecek apakah produk sudah di-favorite oleh user
   Future<void> _checkFavoriteStatus() async {
     final request = context.read<CookieRequest>();
     try {
+      // Kirim GET request ke endpoint check favorite
       final response = await request.get(
         'http://localhost:8000/favorites/check/${widget.merchandise.pk}/',
       );
+      // Jika produk sudah di-favorite, update state
       if (response['is_favorited'] == true) {
         setState(() {
           _isFavorite = true;
@@ -78,33 +125,42 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         });
       }
     } catch (e) {
+      // Log error jika terjadi masalah
       debugPrint('Error checking favorite: $e');
     }
   }
 
+  // Method async untuk memuat jumlah item di cart
   Future<void> _loadCartCount() async {
     final request = context.read<CookieRequest>();
     try {
+      // Kirim GET request ke endpoint cart
       final response = await request.get('http://localhost:8000/cart/json/');
+      // Jika response berupa List, hitung jumlahnya
       if (response is List) {
         setState(() => _cartCount = response.length);
       }
     } catch (e) {
+      // Log error jika terjadi masalah
       debugPrint('Error loading cart count: $e');
     }
   }
 
+  // Method async untuk toggle status favorite (add/remove)
   Future<void> _toggleFavorite() async {
+    // Set loading state
     setState(() => _isLoadingFavorite = true);
     final request = context.read<CookieRequest>();
 
     try {
+      // Jika sudah favorite, lakukan remove
       if (_isFavorite && _favoriteId != null) {
         final response = await request.post(
           'http://localhost:8000/favorites/remove/',
           {'favorite_id': _favoriteId},
         );
         if (response['status'] == 'ok') {
+          // Update state jika berhasil remove
           setState(() {
             _isFavorite = false;
             _favoriteId = null;
@@ -112,11 +168,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           _showToast('Removed from Favorites', Colors.blue);
         }
       } else {
+        // Jika belum favorite, lakukan add
         final response = await request.post(
           'http://localhost:8000/favorites/add/',
           {'merchandise_id': widget.merchandise.pk},
         );
         if (response['status'] == 'ok') {
+          // Update state jika berhasil add
           setState(() {
             _isFavorite = true;
             _favoriteId = response['favorite_id'];
@@ -125,15 +183,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         }
       }
     } catch (e) {
+      // Tampilkan error jika gagal
       _showToast('Failed to update favorite', Colors.red);
       debugPrint('Error toggling favorite: $e');
     } finally {
+      // Reset loading state
       setState(() => _isLoadingFavorite = false);
     }
   }
 
   // Add to Cart menggunakan CartService
   Future<void> _addToCart() async {
+    // Set loading state
     setState(() => _isLoadingCart = true);
 
     try {
@@ -149,18 +210,22 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         _showToast(result['message'] ?? 'Failed to add to cart', Colors.red);
       }
     } catch (e) {
+      // Tampilkan error jika terjadi exception
       _showToast('An error occurred', Colors.red);
       debugPrint('Error adding to cart: $e');
     } finally {
+      // Reset loading state
       setState(() => _isLoadingCart = false);
     }
   }
 
   // Buy Now menggunakan CartService dan navigasi ke CheckoutPage
   Future<void> _buyNow() async {
+    // Set loading state
     setState(() => _isLoadingCart = true);
 
     try {
+      // Panggil method buyNow dari CartService
       final result = await _cartService.buyNow(
         productId: widget.merchandise.pk,
         quantity: _quantity,
@@ -185,60 +250,80 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
   }
 
+  // Method untuk menampilkan toast message (SnackBar) di bottom screen
   void _showToast(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
+        // Content berisi icon dan message
         content: Row(
           children: [
+            // Icon berdasarkan warna (success/error/info)
             Icon(
               color == Colors.green
-                  ? Icons.check_circle
+                  ? Icons.check_circle // Icon success
                   : color == Colors.red
-                  ? Icons.error
-                  : Icons.info,
+                  ? Icons.error // Icon error
+                  : Icons.info, // Icon info
               color: Colors.white,
             ),
             const SizedBox(width: 8),
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
+        backgroundColor: color, // Background color sesuai parameter
+        behavior: SnackBarBehavior.floating, // Floating snackbar
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 3), // Durasi tampil 3 detik
       ),
     );
   }
 
+  // Method untuk membangun widget star rating (bintang 1-5)
   Widget _buildStarRating(double rating) {
-    int full = rating.floor();
-    bool half = (rating - full) >= 0.5;
+    int full = rating.floor(); // Jumlah bintang penuh
+    bool half = (rating - full) >= 0.5; // Apakah ada setengah bintang
     return Row(
       mainAxisSize: MainAxisSize.min,
+      // Generate 5 bintang
       children: List.generate(5, (i) {
         if (i < full)
-          return const Icon(Icons.star, size: 16, color: Colors.amber);
+          return const Icon(Icons.star, size: 16, color: Colors.amber); // Bintang penuh
         if (i == full && half)
-          return const Icon(Icons.star_half, size: 16, color: Colors.amber);
-        return const Icon(Icons.star_border, size: 16, color: Colors.grey);
+          return const Icon(Icons.star_half, size: 16, color: Colors.amber); // Setengah bintang
+        return const Icon(Icons.star_border, size: 16, color: Colors.grey); // Bintang kosong
       }),
     );
   }
 
+  // Method build untuk membangun UI halaman detail produk
   @override
   Widget build(BuildContext context) {
+    // Ambil fields dari merchandise untuk akses lebih mudah
     final fields = widget.merchandise.fields;
+    // Dapatkan URL gambar produk
     final imageUrl = _getImageUrl(fields.thumbnail);
 
+    // Return Scaffold sebagai struktur utama halaman
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: Color(0xFFFFF1F1), // Background pink muda
+      // AppBar di bagian atas halaman
       appBar: AppBar(
-        title: const Text('Product Detail'),
+        elevation: 0, // Tidak ada bayangan
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
-        elevation: 0,
+        title: const Text(
+          'Product Detail',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+        ),
+        // Tombol back di kiri
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          onPressed: () => Navigator.pop(context), // Kembali ke halaman sebelumnya
+        ),
+        // Actions di kanan AppBar
         actions: [
+          // Icon favorite ke favoritePage
           IconButton(
             icon: const Icon(Icons.favorite),
             color: Colors.red,
@@ -296,10 +381,27 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           const SizedBox(width: 8),
         ],
       ),
+
+      // Body Content
       body: ListView(
         children: [
+          // Image Section
           Container(
-            color: Colors.white,
+            margin: const EdgeInsets.only(left: 15, right: 15, top: 15),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
             child: Stack(
               children: [
                 AspectRatio(
@@ -458,9 +560,24 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
           ),
 
+          // Details Section
           Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(25),
+            margin: const EdgeInsets.symmetric(horizontal: 15),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(12),
+                bottomRight: Radius.circular(12),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -508,12 +625,64 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ),
                 const SizedBox(height: 20),
 
-                if (fields.stock > 0) ...[
-                  const Text(
-                    'Quantity',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                // Jika user adalah guest, tampilkan pesan login prompt
+                if (_isGuest) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orange.shade200, width: 2),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.lock_outline,
+                          size: 48,
+                          color: Colors.orange[700],
+                        ),
+                        const SizedBox(height: 12),
+                        RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.black87,
+                            ),
+                            children: [
+                              const TextSpan(text: 'Ingin melakukan transaksi? '),
+                              WidgetSpan(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    // Navigasi ke halaman login
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const LoginPage(),
+                                      ),
+                                    );
+                                  },
+                                  child: Text(
+                                    'Login sekarang',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.orange[700],
+                                      fontWeight: FontWeight.bold,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                ] else if (fields.stock > 0) ...[                 
                   const SizedBox(height: 8),
+                  // Quantity selector - hanya tampil untuk user yang sudah login
                   Container(
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey.shade300, width: 2),
@@ -555,47 +724,59 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
                   SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoadingFavorite ? null : _toggleFavorite,
-                      icon: _isLoadingFavorite
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(255, 167, 16, 16),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color.fromARGB(255, 115, 16, 16).withOpacity(0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _isLoadingFavorite ? null : _toggleFavorite,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _isLoadingFavorite
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            Colors.white,
+                                          ),
+                                        ),
+                                      )
+                                    : Icon(
+                                        _isFavorite
+                                            ? Icons.favorite
+                                            : Icons.favorite_border,
+                                        color: Colors.white,
+                                      ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _isFavorite
+                                      ? 'Remove from Favorite'
+                                      : 'Add to Favorite',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
-                            )
-                          : Icon(
-                              _isFavorite
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
+                              ],
                             ),
-                      label: Text(
-                        _isFavorite
-                            ? 'Remove from Favorite'
-                            : 'Add to Favorite',
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: _isFavorite
-                            ? const Color(0xFFEF4444)
-                            : Colors.white,
-                        foregroundColor: _isFavorite
-                            ? Colors.white
-                            : Colors.grey[700],
-                        side: BorderSide(
-                          color: _isFavorite
-                              ? const Color(0xFFEF4444)
-                              : Colors.grey.shade300,
-                          width: 2,
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: _isFavorite ? 4 : 0,
                       ),
                     ),
                   ),
@@ -603,29 +784,56 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
                   SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoadingCart ? null : _addToCart,
-                      icon: _isLoadingCart
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFEA580C), Color(0xFFB91C1C)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFEA580C).withOpacity(0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _isLoadingCart ? null : _addToCart,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _isLoadingCart
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            Colors.white,
+                                          ),
+                                        ),
+                                      )
+                                    : const Icon(Icons.shopping_cart, color: Colors.white),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Add to Cart',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
-                            )
-                          : const Icon(Icons.shopping_cart),
-                      label: const Text('Add to Cart'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: const Color(0xFFEA580C),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                              ],
+                            ),
+                          ),
                         ),
-                        elevation: 4,
                       ),
                     ),
                   ),
@@ -633,15 +841,48 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _isLoadingCart ? null : _buyNow,
-                      icon: const Icon(Icons.bolt, color: Colors.orange),
-                      label: const Text('Buy Now'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: BorderSide(color: Colors.grey.shade300, width: 2),
-                        shape: RoundedRectangleBorder(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300, width: 2),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.shade200.withOpacity(0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _isLoadingCart ? null : _buyNow,
                           borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _isLoadingCart
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.bolt, color: Colors.orange),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Buy Now',
+                                  style: TextStyle(
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -649,7 +890,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ] else
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(25),
                     decoration: BoxDecoration(
                       color: Colors.red[50],
                       borderRadius: BorderRadius.circular(12),
@@ -673,11 +914,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 15),
 
+          // Description Section
           Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.symmetric(horizontal: 15),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(25),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -686,7 +939,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     Icon(Icons.description, color: Color(0xFFEF4444)),
                     SizedBox(width: 8),
                     Text(
-                      'Product Description',
+                      'Product Description── .✦:',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -697,7 +950,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 const SizedBox(height: 12),
                 Text(
                   fields.description.isNotEmpty
-                      ? fields.description
+                      ? _formatDescription(fields.description)
                       : 'No description available.',
                   style: const TextStyle(
                     fontSize: 15,
@@ -709,10 +962,22 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 15),
 
+          // Reviews Section
           Container(
-            color: Colors.white,
+            margin: const EdgeInsets.symmetric(horizontal: 15),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -744,24 +1009,27 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       },
                       child: const Text(
                         'See All Reviews →',
-                        style: TextStyle(color: Color(0xFFE93C49)),
+                        style: TextStyle(color: Color(0xFFE93C49), fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
 
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildFilterChip('All', null),
-                      _buildFilterChip('5', '5'),
-                      _buildFilterChip('4', '4'),
-                      _buildFilterChip('3', '3'),
-                      _buildFilterChip('2', '2'),
-                      _buildFilterChip('1', '1'),
-                    ],
+                Align(
+                  alignment: Alignment.center,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip('All', null),
+                        _buildFilterChip('5', '5'),
+                        _buildFilterChip('4', '4'),
+                        _buildFilterChip('3', '3'),
+                        _buildFilterChip('2', '2'),
+                        _buildFilterChip('1', '1'),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -829,27 +1097,29 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
           ),
 
-          const SizedBox(height: 80),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
+  // Method untuk membangun widget filter chip untuk rating
   Widget _buildFilterChip(String label, String? value) {
-    final isSelected = _ratingFilter == value;
+    final isSelected = _ratingFilter == value; // Cek apakah chip ini sedang dipilih
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(
         label: Text(label),
-        selected: isSelected,
+        selected: isSelected, // Set selected state
         onSelected: (selected) {
+          // Update rating filter saat chip di-tap
           setState(() => _ratingFilter = value);
         },
-        selectedColor: const Color(0xFFB91C1C),
-        backgroundColor: Colors.grey[300],
+        selectedColor: const Color(0xFFB91C1C), // Warna merah saat dipilih
+        backgroundColor: Colors.grey[300], // Warna abu-abu saat tidak dipilih
         labelStyle: TextStyle(
-          color: isSelected ? Colors.white : Colors.black87,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? Colors.white : Colors.black87, // Warna text
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, // Bold jika dipilih
         ),
       ),
     );

@@ -1,56 +1,71 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:trophythreads_mobile/features/merchandise/screens/merchandise_list.dart';
 import '../models/merchandise_entry.dart';
 
+// Widget StatefulWidget untuk halaman form merchandise
+// Form ini digunakan untuk menambahkan produk merchandise baru
 class MerchandiseFormPage extends StatefulWidget {
   const MerchandiseFormPage({super.key});
 
+  // Method untuk membuat state dari widget ini
   @override
   State<MerchandiseFormPage> createState() => _MerchandiseFormPageState();
 }
 
+// State class untuk MerchandiseFormPage
 class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
+  // Global key untuk form validation
   final _formKey = GlobalKey<FormState>();
-  String _name = '';
-  int _price = 0;
-  String? _category;
-  int _stock = 0;
-  String _thumbnail = '';
-  String _description = '';
-  int _productViews = 0;
-  bool _isFeatured = false;
 
+  // State variables untuk menyimpan input user
+  String _name = ''; // Nama produk
+  int _price = 0; // Harga produk
+  String? _category; // Kategori produk (nullable)
+  int _stock = 0; // Jumlah stok
+  String _thumbnail = ''; // URL thumbnail produk
+  String _description = ''; // Deskripsi produk
+  int _productViews = 0; // Jumlah views produk
+  bool _isFeatured = false; // Flag apakah produk featured
+
+  // List kategori produk yang tersedia untuk dropdown
   final List<String> _categories = [
-    'jersey',
-    'training jersey',
-    'top',
-    'jacket',
-    'hoodie',
-    'sweatshirt',
-    'vest',
-    'socks',
-    'ball',
-    'bag',
-    'tumbler',
-    'action figure',
-    'accessories',
-    'others',
+    'jersey', // Jersey tim
+    'training jersey', // Jersey latihan
+    'top', // Atasan
+    'jacket', // Jaket
+    'hoodie', // Hoodie/jaket bertudung
+    'sweatshirt', // Baju hangat
+    'vest', // Rompi
+    'socks', // Kaus kaki
+    'ball', // Bola
+    'bag', // Tas
+    'tumbler', // Botol minum
+    'action figure', // Mainan figur
+    'accessories', // Aksesoris
+    'others', // Lainnya
   ];
 
+  // Method build untuk membangun UI form
   @override
   Widget build(BuildContext context) {
+    // Mengambil CookieRequest dari Provider untuk autentikasi
     final request = context.watch<CookieRequest>();
+    // Mengembalikan widget Scaffold sebagai struktur utama halaman
     return Scaffold(
+      // SafeArea untuk menghindari area sistem (notch, status bar, dll)
       body: SafeArea(
+        // SingleChildScrollView agar form bisa di-scroll
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Back ke halaman sebelumnya
+                // Tombol kembali ke halaman sebelumnya
                 GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
@@ -144,7 +159,6 @@ class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                
                                 // input Nama produk
                                 const Text("Nama Merchandise"),
                                 SizedBox(height: 4),
@@ -186,7 +200,7 @@ class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
                                 ),
                                 SizedBox(height: 16),
 
-                                // input harga produk
+                                // Input field untuk harga produk
                                 const Text("Harga"),
                                 SizedBox(height: 4),
                                 TextFormField(
@@ -210,6 +224,13 @@ class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
                                       ),
                                     ),
                                   ),
+                                  // Callback saat nilai berubah
+                                  onChanged: (String? value) {
+                                    setState(() {
+                                      _price = int.tryParse(value ?? '0') ?? 0;
+                                    });
+                                  },
+                                  // Validator untuk validasi input
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
                                       return 'Harga produk tidak boleh kosong!';
@@ -277,7 +298,7 @@ class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
 
                                 SizedBox(height: 16),
 
-                                // input stok produk
+                                // Input field untuk stok produk
                                 const Text("Stok"),
                                 SizedBox(height: 4),
                                 TextFormField(
@@ -301,6 +322,13 @@ class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
                                       ),
                                     ),
                                   ),
+                                  // Callback saat nilai berubah
+                                  onChanged: (String? value) {
+                                    setState(() {
+                                      _stock = int.tryParse(value ?? '0') ?? 0;
+                                    });
+                                  },
+                                  // Validator untuk validasi input
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
                                       return 'Stok produk tidak boleh kosong!';
@@ -348,7 +376,7 @@ class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
                                     setState(() {
                                       _thumbnail = value;
                                     });
-                                  },                                  
+                                  },
                                 ),
                                 SizedBox(height: 16),
 
@@ -425,58 +453,58 @@ class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
                                               ).colorScheme.secondary,
                                             ),
                                       ),
-                                      onPressed: () {
+                                      onPressed: () async {
+                                        // Validasi form sebelum submit
                                         if (_formKey.currentState!.validate()) {
-                                          showDialog(
-                                            context: context,
-                                            builder: (context) {
-                                              return AlertDialog(
-                                                title: const Text(
-                                                  'Merchandise berhasil disimpan!',
-                                                ),
-                                                content: SingleChildScrollView(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text('Judul: $_name'),
-                                                      Text('Price: $_price'),
-                                                      Text(
-                                                        'Kategori: $_category',
-                                                      ),
-                                                      Text('Stock: $_stock'),
-                                                      Text(
-                                                        'Thumbnail: $_thumbnail',
-                                                      ),
-                                                      Text(
-                                                        'Description: $_description',
-                                                      ),
-                                                      Text(
-                                                        'is Featured: $_isFeatured',
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                actions: [
-                                                  TextButton(
-                                                    child: const Text('OK'),
-                                                    onPressed: () {
-                                                      Navigator.pop(context);
-                                                      setState(() {
-                                                        _formKey.currentState!
-                                                            .reset();
-                                                      });
-                                                    },
-                                                  ),
-                                                ],
-                                              );
-                                            },
+                                          // Kirim data ke backend dengan POST request
+                                          final response = await request.postJson(
+                                            "http://localhost:8000/create-flutter/",
+                                            jsonEncode({
+                                              "name": _name,
+                                              "price": _price,
+                                              "category": _category,
+                                              "stock": _stock,
+                                              "thumbnail": _thumbnail,
+                                              "is_featured": _isFeatured,
+                                              "description": _description,
+                                            }),
                                           );
+
+                                          if (context.mounted) {
+                                            if (response['status'] ==
+                                                'success') {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    "Merchandise berhasil disimpan!",
+                                                  ),
+                                                ),
+                                              );
+                                              Navigator.pushReplacement(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      MerchandiseEntryListPage(),
+                                                ),
+                                              );
+                                            } else {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    "Terjadi kesalahan, silakan coba lagi.",
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          }
                                         }
                                       },
                                       child: const Text(
-                                        "Save",
+                                        "Simpan",
                                         style: TextStyle(color: Colors.white),
                                       ),
                                     ),
