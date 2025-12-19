@@ -28,7 +28,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   // Payment method selections
   String _paymentCategory = 'ewallet'; // ewallet, bca, bri
-  String _paymentMethod = 'gopay'; // gopay, ovo, flip
+  String _paymentMethod = 'gopay'; // inisiasi awal
 
   @override
   void initState() {

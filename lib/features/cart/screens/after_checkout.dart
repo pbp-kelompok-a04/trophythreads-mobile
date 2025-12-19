@@ -148,7 +148,7 @@ class AfterCheckoutPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
 
-                      // Thank you message
+                      // Pesan
                       const Text(
                         'Terima kasih!',
                         style: TextStyle(
