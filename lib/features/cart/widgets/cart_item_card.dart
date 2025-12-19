@@ -250,12 +250,11 @@ class _CartItemCardState extends State<CartItemCard> {
             ),
             const SizedBox(width: 12),
 
-            // Product details - FIXED: Tidak pakai Stack lagi
+            // Product details 
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // FIXED: Row untuk nama dan tombol hapus agar tidak overlap
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

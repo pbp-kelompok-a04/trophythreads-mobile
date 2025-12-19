@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import '../services/cart_service.dart';
+import 'after_checkout.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({Key? key}) : super(key: key);
@@ -112,60 +113,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
       if (result['success'] == true) {
         if (mounted) {
-          // Show success dialog
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                title: const Row(
-                  children: [
-                    Icon(
-                      Icons.check_circle,
-                      color: Color(0xFF4CAF50),
-                      size: 32,
-                    ),
-                    SizedBox(width: 12),
-                    Text('Checkout Berhasil!'),
-                  ],
-                ),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Order Token: ${result['order_token']}'),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Total: Rp ${_formatPrice(result['grand_total'] ?? 0)}',
-                    ),
-                  ],
-                ),
-                actions: [
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(); // Close dialog
-                      Navigator.of(context).pop(); // Back to previous page
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE93C49),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: Text('OK', style: TextStyle(color: Colors.white)),
-                    ),
-                  ),
-                ],
-              );
-            },
+          // Navigate to success page
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AfterCheckoutPage(
+                orderToken: result['order_token'] ?? '',
+                grandTotal: result['grand_total'] ?? 0,
+              ),
+            ),
           );
         }
       } else {
@@ -258,24 +214,63 @@ class _CheckoutPageState extends State<CheckoutPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Address Section
-                  _buildAddressSection(),
+                  // Address Section with #FFCECE background
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFCECE),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: _buildAddressSection(),
+                  ),
                   const SizedBox(height: 12),
 
-                  // Items List
-                  ..._items.map((item) => _buildItemCard(item)).toList(),
+                  // Items List with #FFCECE background
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFCECE),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: _items
+                          .map((item) => _buildItemCard(item))
+                          .toList(),
+                    ),
+                  ),
                   const SizedBox(height: 12),
 
-                  // Total Products
-                  _buildTotalProductsCard(),
+                  // Total Products with #FFCECE background
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFCECE),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: _buildTotalProductsCard(),
+                  ),
                   const SizedBox(height: 12),
 
                   // Payment Method
-                  _buildPaymentMethodCard(),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFCECE),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: _buildPaymentMethodCard(),
+                  ),
                   const SizedBox(height: 12),
 
                   // Payment Summary
-                  _buildPaymentSummaryCard(),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFCECE),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: _buildPaymentSummaryCard(),
+                  ),
                   const SizedBox(height: 100),
                 ],
               ),
