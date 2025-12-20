@@ -12,6 +12,7 @@ class MerchandiseEntryCard extends StatelessWidget {
   final void Function(String id)? onDelete; // Callback untuk delete merchandise (opsional)
   final String? currentUserId; // ID user yang sedang login (opsional, untuk cek owner)
   final String? currentUserRole; // Role user yang sedang login (opsional, untuk cek seller)
+  final double? averageRating; // Average rating (opsional, dihitung dari reviews)
 
   // Constructor dengan parameter required untuk merchandise dan opsional untuk callbacks
   const MerchandiseEntryCard({
@@ -22,6 +23,7 @@ class MerchandiseEntryCard extends StatelessWidget {
     this.onDelete,
     this.currentUserId,
     this.currentUserRole,
+    this.averageRating,
   });
 
   // Getter untuk mengecek apakah user adalah pemilik merchandise
@@ -129,10 +131,21 @@ class MerchandiseEntryCard extends StatelessWidget {
     final name = f.name ?? 'Unknown Product'; // Nama produk (default jika null)
     final category = (f.category ?? 'Others').toString(); // Kategori produk
     final priceText = _formatPrice(f.price ?? 0); // Harga terformat dalam Rupiah
-    final rating = 0.0; // Rating produk (placeholder karena belum ada di model)
+    final rating = averageRating ?? 0.0; // Rating produk dari ReviewService (default 0.0)
     final stock = f.stock ?? 0; // Jumlah stok
     final productViews = f.productViews ?? 0; // Jumlah views produk
     final isFeatured = f.isFeatured ?? false; // Flag apakah produk featured
+    
+    // Format product views (1000+ = "1K", 1000000+ = "1M")
+    String formatViews(int views) {
+      if (views >= 1000000) {
+        return '${(views / 1000000).toStringAsFixed(1)}M';
+      } else if (views >= 1000) {
+        return '${(views / 1000).toStringAsFixed(1)}K';
+      } else {
+        return views.toString();
+      }
+    }
 
     // Ambil theme dan color scheme dari context
     final theme = Theme.of(context);
@@ -245,64 +258,88 @@ class MerchandiseEntryCard extends StatelessWidget {
                   const SizedBox(height: 8), // Spacing
 
                   // Baris rating dan stok produk
-                  Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center, // Center vertikal
-                    spacing: 8, // Jarak horizontal antar child
-                    runSpacing: 2, // Jarak vertikal jika wrap ke baris baru
-                    children: [
-                      // Widget bintang rating
-                      _buildStars(rating),
-                      const SizedBox(width: 8), // Spacing
-                      // Angka rating
-                      Text(
-                        (rating).toStringAsFixed(1), // Format 1 desimal
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Widget bintang rating
+                        _buildStars(rating),
+                        const SizedBox(width: 8), // Spacing
+                        // Angka rating
+                        Text(
+                          (rating).toStringAsFixed(1), // Format 1 desimal
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8), // Spacing
-                      // Bullet separator
-                      const Text('•'),
-                      const SizedBox(width: 8), // Spacing
-                      // Text jumlah stok
-                      Text(
-                        '$stock in stock',
-                        style: const TextStyle(
-                          color: Colors.grey, // Warna abu-abu
-                          fontSize: 13,
+                        const SizedBox(width: 8), // Spacing
+                        // Bullet separator
+                        const Text('•'),
+                        const SizedBox(width: 8), // Spacing
+                        // Tampilkan stok di samping rating
+                        Flexible(
+                          child: Text(
+                            '$stock in stock',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.grey, // Warna abu-abu
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
 
                   const SizedBox(height: 12), // Spacing
 
                   // Action buttons (Edit dan Delete) - hanya tampil jika user punya permission
                   if (_canEditOrDelete)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end, // Align ke kanan
-                      children: [
-                        // Tombol Edit
-                        TextButton(
-                          onPressed: () =>
-                              onEdit?.call(currentUserId.toString()), // Panggil callback onEdit
-                          child: const Text(
-                            'Edit',
-                            style: TextStyle(color: Colors.blueAccent), // Warna biru
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end, // Align ke kanan
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Tombol Edit
+                          TextButton(
+                            onPressed: () =>
+                                onEdit?.call(merchandise.pk), // Panggil callback onEdit dengan pk merchandise
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                              minimumSize: const Size(0, 28),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text(
+                              'Edit',
+                              style: TextStyle(
+                                color: Colors.blueAccent,
+                                fontSize: 11,
+                              ), // Warna biru
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8), // Spacing antar tombol
-                        // Tombol Delete
-                        TextButton(
-                          onPressed: () =>
-                              onDelete?.call(currentUserId.toString()), // Panggil callback onDelete
-                          child: const Text(
-                            'Delete',
-                            style: TextStyle(color: Colors.redAccent), // Warna merah
+                          const SizedBox(width: 2), // Spacing antar tombol
+                          // Tombol Delete
+                          TextButton(
+                            onPressed: () =>
+                                onDelete?.call(merchandise.pk), // Panggil callback onDelete dengan pk merchandise
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                              minimumSize: const Size(0, 28),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text(
+                              'Delete',
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 11,
+                              ), // Warna merah
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                 ],
               ),
