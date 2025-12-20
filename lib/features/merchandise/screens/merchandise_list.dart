@@ -365,28 +365,30 @@ class _MerchandiseEntryListPageState extends State<MerchandiseEntryListPage> {
                       final m = data[index];
                       // Wrap card dengan GestureDetector untuk handle tap
                       return GestureDetector(
-                        onTap: () {
+                        onTap: () async {
                           // Navigasi ke halaman detail merchandise
-                          Navigator.push(
+                          await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
                                   ProductDetailPage(merchandise: m),
                             ),
                           );
+                          setState(() {});
                         },
                         // Widget card merchandise
                         child: MerchandiseEntryCard(
                           merchandise: m,
-                          onTap: () {
+                          onTap: () async {
                             // Callback saat card di-tap
-                            Navigator.push(
+                            await Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) =>
                                     ProductDetailPage(merchandise: m),
                               ),
                             );
+                            setState(() {});
                           },
                         ),
                       );
