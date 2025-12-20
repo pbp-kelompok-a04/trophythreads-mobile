@@ -76,17 +76,22 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
   @override
   Widget build(BuildContext context) {
     final request = context.watch<CookieRequest>();
-
+    double screenWidth = MediaQuery.of(context).size.width;
+    bool isTablet = screenWidth > 600;
+    double flagHeight = (screenWidth * 0.07).clamp(24.0, 45.0); // min 24 max 45
+    double flagWidth = flagHeight * 1.5;
     bool isAuthenticated = request.loggedIn;
     bool isAdmin = isAuthenticated && request.jsonData['role'] == 'admin';
-
+    double titleSize = isTablet ? 26.0 : 22.0;
+    double bodySize = isTablet ? 16.0 : 14.0;
+    
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       bottomNavigationBar: BottomNavbar(currentIndex: 0, onTap: _onItemTapped),
       appBar: AppBar(
         title: Text(_currentMatch.title),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.primary,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
         elevation: 1,
         surfaceTintColor: Colors.transparent,
       ),
@@ -122,8 +127,8 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                               child: Text(
                                 _currentMatch.title,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 22,
+                                style: TextStyle(
+                                  fontSize: titleSize,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.black87,
                                 ),
@@ -139,17 +144,17 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                                     child: Text(
                                       _currentMatch.homeTeam.name,
                                       textAlign: TextAlign.right,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.w600,
-                                        fontSize: 14,
+                                        fontSize: bodySize,
                                       ),
                                     ),
                                   ),
                                   SizedBox(width: 12),
                                   // thumbnail home team
                                   Container(
-                                    height: 36,
-                                    width: 54,
+                                    height: flagHeight,
+                                    width: flagWidth,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(2.0),
                                       border: Border.all(
@@ -204,8 +209,8 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                                   // Away Team
                                   // thumbnail away team
                                   Container(
-                                    height: 36,
-                                    width: 54,
+                                    height: flagHeight,
+                                    width: flagWidth,
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(2.0),
                                       border: Border.all(
@@ -236,9 +241,9 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                                     child: Text(
                                       _currentMatch.awayTeam.name,
                                       textAlign: TextAlign.left,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.w600,
-                                        fontSize: 14,
+                                        fontSize: bodySize,
                                       ),
                                     ),
                                   ),
@@ -337,10 +342,7 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            ForumListPage(),
-                      ),
+                      MaterialPageRoute(builder: (context) => ForumListPage()),
                     );
                   },
                   style: OutlinedButton.styleFrom(
@@ -357,7 +359,7 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                     "Masuk ke diskusi",
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.secondary,
-                      fontSize: 14,
+                      fontSize: bodySize,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -409,18 +411,18 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
+                                Text(
                                   "Tanggal",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 14,
+                                    fontSize: bodySize,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   _formatDate(_currentMatch.date),
-                                  style: const TextStyle(
-                                    fontSize: 14,
+                                  style: TextStyle(
+                                    fontSize: bodySize,
                                     color: Colors.black,
                                   ),
                                 ),
@@ -447,18 +449,18 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     "Kompetisi",
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                                      fontSize: bodySize,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     _currentMatch.title,
-                                    style: const TextStyle(
-                                      fontSize: 14,
+                                    style: TextStyle(
+                                      fontSize: bodySize,
                                       color: Colors.black,
                                     ),
                                   ),
@@ -486,18 +488,18 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     "Lokasi",
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                                      fontSize: bodySize,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     "${_currentMatch.city}, ${_currentMatch.country}",
-                                    style: const TextStyle(
-                                      fontSize: 14,
+                                    style: TextStyle(
+                                      fontSize: bodySize,
                                       color: Colors.black,
                                     ),
                                   ),
@@ -515,8 +517,8 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                     child: RichText(
                       textAlign: TextAlign.left,
                       text: TextSpan(
-                        style: const TextStyle(
-                          fontSize: 14,
+                        style: TextStyle(
+                          fontSize: bodySize,
                           color: Colors.black,
                         ),
                         children: [
@@ -536,7 +538,7 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                               child: Text(
                                 "Login sekarang!",
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: bodySize,
                                   fontWeight: FontWeight.bold,
                                   color: Theme.of(
                                     context,
