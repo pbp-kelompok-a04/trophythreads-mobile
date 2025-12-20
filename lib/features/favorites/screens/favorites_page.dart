@@ -95,19 +95,21 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(  // Tambahkan ini
+    return WillPopScope(
+      // Tambahkan ini
       onWillPop: () async {
         Navigator.pop(context, true);
         return false;
       },
-      child: Scaffold(  // Scaffold yang sudah ada
+      child: Scaffold(
+        // Scaffold yang sudah ada
         backgroundColor: const Color(0xFFFFF5F5),
         appBar: _buildAppBar(),
         body: isLoading
             ? const Center(child: CircularProgressIndicator())
             : favorites.isEmpty
-                ? _buildEmptyState()
-                : _buildFavoritesList(),
+            ? _buildEmptyState()
+            : _buildFavoritesList(),
       ),
     );
   }
@@ -118,7 +120,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
       elevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => Navigator.pop(context, true), 
+        onPressed: () => Navigator.pop(context, true),
       ),
       titleSpacing: 0, // Hapus spacing default antara leading dan title
       title: Container(
@@ -233,12 +235,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
             ElevatedButton.icon(
               onPressed: () {
                 // Navigate ke Merchandise List Page
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const MerchandiseEntryListPage(),
-                  ),
-                );
+                Navigator.of(context).popUntil((route) => route.isFirst);
               },
               icon: const Icon(Icons.shopping_bag, color: Colors.white),
               label: const Text(
