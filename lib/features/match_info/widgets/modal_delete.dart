@@ -101,7 +101,7 @@ Future<void> _performDelete(
 ) async {
   try {
     final response = await request.postJson(
-      'http://127.0.0.1:8000/informasi/match/$matchId/delete-flutter/',
+      'http://localhost:8000/informasi/match/$matchId/delete-flutter/',
       jsonEncode({}),
     );
     if (context.mounted) {

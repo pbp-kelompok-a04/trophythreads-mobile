@@ -6,6 +6,7 @@ import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:trophythreads_mobile/features/auth/screens/login.dart';
 import 'package:trophythreads_mobile/features/match_info/widgets/modal_delete.dart';
 import 'package:trophythreads_mobile/features/match_info/screens/matchlist_form.dart';
+import 'package:trophythreads_mobile/features/forum/screens/forum_list.dart';
 import 'package:trophythreads_mobile/main.dart';
 
 class MatchDetailPage extends StatefulWidget {
@@ -60,7 +61,7 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
   Future<void> _refreshMatchData() async {
     final request = context.read<CookieRequest>();
     final response = await request.get(
-      'http://127.0.0.1:8000/informasi/json/${_currentMatch.id}/',
+      'http://localhost:8000/informasi/json/${_currentMatch.id}/',
     );
     if (mounted) {
       setState(() {
@@ -310,7 +311,7 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                                     const PopupMenuItem<String>(
                                       height: 35,
                                       value: 'edit',
-                                      child: Text('Edit'),
+                                      child: Text('Ubah'),
                                     ),
                                     PopupMenuDivider(
                                       color: Colors.grey.shade300,
@@ -320,7 +321,7 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                                       height: 35,
                                       value: 'delete',
                                       child: Text(
-                                        'Delete',
+                                        'Hapus',
                                         style: TextStyle(color: Colors.red),
                                       ),
                                     ),
@@ -334,9 +335,11 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                 const SizedBox(height: 16),
                 OutlinedButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Jump to Discussion clicked!"),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ForumListPage(),
                       ),
                     );
                   },

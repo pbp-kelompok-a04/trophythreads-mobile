@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:trophythreads_mobile/bottom_navbar.dart';
 import 'package:trophythreads_mobile/features/auth/screens/login.dart';
 import 'package:trophythreads_mobile/features/auth/screens/profile_page.dart';
+import 'package:trophythreads_mobile/features/forum/screens/forum_list.dart';
 import 'package:trophythreads_mobile/features/match_info/screens/match_entry_list.dart';
 import 'package:trophythreads_mobile/features/merchandise/screens/merchandise_list.dart';
 
@@ -24,6 +25,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Trophy Threads',
         theme: ThemeData(
+          fontFamily: 'Nunito',
           colorScheme: const ColorScheme(
             brightness: Brightness.light,
             primary: Color(0xFF990B29),
@@ -55,7 +57,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   final List<Widget> _pages = [
     const MatchEntryListPage(),
     const MerchandiseEntryListPage(),
-    const Center(child: Text("Halaman Discussion")),
+    const ForumListPage(),
     const ProfilePage(),
   ];
 
