@@ -55,7 +55,7 @@ class _MatchFormPageState extends State<MatchFormPage> {
     final request = Provider.of<CookieRequest>(context, listen: false);
     try {
       final response = await request.get(
-        'http://127.0.0.1:8000/informasi/json-country/',
+        'http://localhost:8000/informasi/json-country/',
       );
       List<Team> loadedTeams = [];
       for (var country in response) {
@@ -682,10 +682,10 @@ class _MatchFormPageState extends State<MatchFormPage> {
                                                 String pathUrl;
                                                 if (widget.match == null) {
                                                   pathUrl =
-                                                      'http://127.0.0.1:8000/informasi/create-flutter/';
+                                                      "http://localhost:8000/informasi/create-flutter/";
                                                 } else {
                                                   pathUrl =
-                                                      'http://127.0.0.1:8000/informasi/edit-flutter/${widget.match!.id}/';
+                                                      "http://localhost:8000/informasi/edit-flutter/${widget.match!.id}/";
                                                 }
                                                 
                                                 final response = await request.postJson(
