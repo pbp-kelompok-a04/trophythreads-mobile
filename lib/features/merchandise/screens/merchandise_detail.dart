@@ -10,6 +10,7 @@ import 'package:trophythreads_mobile/features/cart/services/cart_service.dart';
 import 'package:trophythreads_mobile/features/cart/screens/cart_list.dart';
 import 'package:trophythreads_mobile/features/cart/screens/checkout_page.dart';
 import 'package:trophythreads_mobile/features/favorites/screens/favorites_page.dart';
+import 'package:trophythreads_mobile/features/auth/screens/login.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final MerchandiseEntry merchandise;
@@ -71,9 +72,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       final response = await request.get(
         'http://localhost:8000/favorites/check/${widget.merchandise.pk}/',
       );
-      if (response['is_favorited'] == true) {
+      if (mounted) {
         setState(() {
-          _isFavorite = true;
+          _isFavorite = response['is_favorited'] == true;
           _favoriteId = response['favorite_id'];
         });
       }
@@ -86,7 +87,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final request = context.read<CookieRequest>();
     try {
       final response = await request.get('http://localhost:8000/cart/json/');
-      if (response is List) {
+      if (response is List && mounted) {
         setState(() => _cartCount = response.length);
       }
     } catch (e) {
@@ -95,6 +96,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Future<void> _toggleFavorite() async {
+    // Check if user can access this feature (must be "user" role)
+    bool canAccess = await LoginPageState.canAccessUserFeature(context, 'Favorites');
+    if (!canAccess) {
+      return;
+    }
+
     setState(() => _isLoadingFavorite = true);
     final request = context.read<CookieRequest>();
 
@@ -134,6 +141,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // Add to Cart menggunakan CartService
   Future<void> _addToCart() async {
+    // Check if user can access this feature (must be "user" role)
+    bool canAccess = await LoginPageState.canAccessUserFeature(context, 'Cart');
+    if (!canAccess) {
+      return;
+    }
+
     setState(() => _isLoadingCart = true);
 
     try {
@@ -158,6 +171,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // Buy Now menggunakan CartService dan navigasi ke CheckoutPage
   Future<void> _buyNow() async {
+    // Check if user can access this feature (must be "user" role)
+    bool canAccess = await LoginPageState.canAccessUserFeature(context, 'Pembelian');
+    if (!canAccess) {
+      return;
+    }
+
     setState(() => _isLoadingCart = true);
 
     try {
@@ -242,8 +261,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           IconButton(
             icon: const Icon(Icons.favorite),
             color: Colors.red,
-            onPressed: () {
-              _showToast('Navigate to My Favorites', Colors.blue);
+            onPressed: () async {
+              // Check if user can access this feature (must be "user" role)
+              bool canAccess = await LoginPageState.canAccessUserFeature(context, 'Favorites');
+              if (!canAccess) {
+                return;
+              }
+
+              // Navigate ke FavoritesPage dan tunggu result
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FavoritesPage(),
+                ),
+              );
+              
+              // Refresh favorite status setelah kembali dari favorites page
+              if (result == true && mounted) {
+                await _checkFavoriteStatus();
+              }
             },
           ),
 
@@ -280,7 +316,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ],
             ),
             color: Colors.orange,
-            onPressed: () {
+            onPressed: () async {
+              // Check if user can access this feature (must be "user" role)
+              bool canAccess = await LoginPageState.canAccessUserFeature(context, 'Cart');
+              if (!canAccess) {
+                return;
+              }
+
               // Navigate ke CartPage
               Navigator.push(
                 context,
@@ -796,28 +838,34 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
-                      onPressed: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AddReviewPage(
-                              productId: widget.merchandise.pk.toString(),
-                              productName: widget.merchandise.fields.name,
-                            ),
-                          ),
-                        );
+                        onPressed: () async {
+                          // Check if user can access this feature (must be "user" role)
+                          bool canAccess = await LoginPageState.canAccessUserFeature(context, 'Review');
+                          if (!canAccess) {
+                            return;
+                          }
 
-                        // optional: refresh page setelah submit review
-                        if (result == true && mounted) {
-                          setState(() {});
-                        }
-                      },
-                      icon: const Icon(Icons.edit),
-                      label: const Text('Write a Review'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEA580C),
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddReviewPage(
+                                productId: widget.merchandise.pk.toString(),
+                                productName: widget.merchandise.fields.name,
+                              ),
+                            ),
+                          );
+
+                          // optional: refresh page setelah submit review
+                          if (result == true && mounted) {
+                            setState(() {});
+                          }
+                        },
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Write a Review'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFEA580C),
+                        ),
                       ),
-                    ),
                     ],
                   ),
                 ),

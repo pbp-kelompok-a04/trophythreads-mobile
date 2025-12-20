@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trophythreads_mobile/features/auth/models/profile.dart';
+import 'package:trophythreads_mobile/features/merchandise/screens/merchandise_form.dart';
+import 'package:trophythreads_mobile/features/merchandise/screens/merchandise_list.dart';
 import 'package:trophythreads_mobile/main.dart';
 import 'package:trophythreads_mobile/features/auth/screens/register.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
@@ -55,32 +57,162 @@ class LoginPageState extends State<LoginPage> {
     await prefs.setString('user_role', role);
   }
 
+  // Helper method to get the user's role
+  static Future<String> getUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_role') ?? '';
+  }
+
+  // Helper method to check if user has "user" role
+  static Future<bool> isUserRole() async {
+    final role = await getUserRole();
+    return role == 'user';
+  }
+
   // Show guest restriction dialog
   static void showGuestRestriction(BuildContext context, String feature) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Akses Terbatas'),
-        content: Text(
-          'Maaf, fitur $feature tidak tersedia untuk pengguna Guest. '
-          'Silakan daftar atau masuk untuk menggunakan fitur ini.',
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        title: Row(
+          children: const [
+            Icon(Icons.account_circle_outlined, color: Color(0xFFEA580C), size: 28),
+            SizedBox(width: 8),
+            Text('Akun Diperlukan'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Untuk menggunakan fitur $feature, Anda perlu memiliki akun Trophy Threads.',
+              style: const TextStyle(fontSize: 15),
+            ),
+            const SizedBox(height: 16),
+          ],
         ),
         actions: [
           TextButton(
-            child: const Text('OK'),
             onPressed: () {
               Navigator.pop(context);
             },
+            child: const Text('Nanti Saja'),
           ),
-          TextButton(
-            child: const Text('Daftar Sekarang'),
+          OutlinedButton.icon(
             onPressed: () {
               Navigator.pop(context);
-              Navigator.pushReplacement(
+              Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const RegisterPage()),
               );
             },
+            icon: const Icon(Icons.person_add, size: 18),
+            label: const Text('Daftar'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFEA580C),
+              side: const BorderSide(color: Color(0xFFEA580C)),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginPage()),
+              );
+            },
+            icon: const Icon(Icons.login, size: 18),
+            label: const Text('Masuk'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEA580C),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Show role restriction dialog for seller/admin
+  static void showRoleRestriction(BuildContext context, String feature) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        title: Row(
+          children: const [
+            Icon(Icons.lock_outline, color: Color(0xFFEA580C), size: 28),
+            SizedBox(width: 8),
+            Text('Fitur Eksklusif User'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Fitur $feature adalah fitur spesial yang hanya tersedia untuk pengguna dengan role "User".',
+              style: const TextStyle(fontSize: 15),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange[200]!),
+              ),
+              child: Row(
+                children: const [
+                  Icon(Icons.info_outline, color: Color(0xFFEA580C), size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Daftar sebagai User untuk menikmati semua fitur belanja!',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFFEA580C),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Nanti Saja'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginPage()),
+              );
+            },
+            icon: const Icon(Icons.person_add, size: 18),
+            label: const Text('Masuk Sekarang'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEA580C),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
           ),
         ],
       ),
@@ -97,6 +229,28 @@ class LoginPageState extends State<LoginPage> {
       showGuestRestriction(context, action);
       return false;
     }
+    return true;
+  }
+
+  // Check if user can access feature (must be role "user" and not guest)
+  static Future<bool> canAccessUserFeature(
+    BuildContext context,
+    String feature,
+  ) async {
+    // Check if guest first
+    bool isGuestUser = await isGuest();
+    if (isGuestUser) {
+      showGuestRestriction(context, feature);
+      return false;
+    }
+
+    // Check if user has "user" role
+    bool hasUserRole = await isUserRole();
+    if (!hasUserRole) {
+      showRoleRestriction(context, feature);
+      return false;
+    }
+
     return true;
   }
 
