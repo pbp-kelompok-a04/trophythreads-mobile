@@ -46,8 +46,8 @@ class MatchEntry {
         isInfoHot: json["is_info_hot"],
         homeTeam: Team.fromJson(json["home_team"]),
         awayTeam: Team.fromJson(json["away_team"]),
-        scoreHome: json["score_home"],
-        scoreAway: json["score_away"],
+        scoreHome: json["score_home_team"],
+        scoreAway: json["score_away_team"],
         views: json["views"],
         userId: json["user_id"],
     );
