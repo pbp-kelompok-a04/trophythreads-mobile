@@ -37,7 +37,7 @@ class _MatchEntryListPageState extends State<MatchEntryListPage> {
 
     try {
       final response = await request.get(
-        'http://127.0.0.1:8000/informasi/json/',
+        'http://localhost:8000/informasi/json/',
       );
       List<MatchEntry> listMatch = [];
       for (var d in response) {
@@ -261,7 +261,10 @@ class _MatchEntryListPageState extends State<MatchEntryListPage> {
                           ),
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.only(top: 16, bottom: 24),
+                          padding: EdgeInsets.only(
+                            top: 16,
+                            bottom: isAdmin ? 64 : 24,
+                          ),
                           itemCount: _filteredMatches.length,
                           itemBuilder: (_, index) => MatchEntryCard(
                             match: _filteredMatches[index],

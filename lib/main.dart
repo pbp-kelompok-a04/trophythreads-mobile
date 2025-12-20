@@ -3,6 +3,7 @@ import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:trophythreads_mobile/bottom_navbar.dart';
 import 'package:trophythreads_mobile/features/auth/screens/login.dart';
+import 'package:trophythreads_mobile/features/forum/screens/forum_list.dart';
 import 'package:trophythreads_mobile/features/match_info/screens/match_entry_list.dart';
 import 'package:trophythreads_mobile/features/merchandise/screens/merchandise_list.dart';
 
@@ -54,7 +55,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   final List<Widget> _pages = [
     const MatchEntryListPage(),
     const MerchandiseEntryListPage(),
-    const Center(child: Text("Halaman Discussion")),
+    const ForumListPage(),
     const Center(child: Text("Halaman Profile")),
   ];
 
