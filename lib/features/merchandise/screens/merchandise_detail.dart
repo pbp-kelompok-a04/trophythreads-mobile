@@ -1077,9 +1077,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ),
                     const Spacer(),
                     TextButton(
-                      onPressed: () {
-                        // Navigate ke Review List Page
-                        Navigator.push(
+                      onPressed: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => ReviewListPage(
@@ -1088,12 +1087,20 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             ),
                           ),
                         );
+
+                        if (mounted) {
+                          await _loadReviewData();
+                        }
                       },
                       child: const Text(
                         'See All Reviews →',
-                        style: TextStyle(color: Color(0xFFE93C49), fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Color(0xFFE93C49),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
+                    )
+
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -1167,8 +1174,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           );
 
                           // optional: refresh page setelah submit review
-                          if (result == true && mounted) {
-                            setState(() {});
+                          if (mounted) {
+                            await _loadReviewData();
                           }
                         },
                         icon: const Icon(Icons.edit),
