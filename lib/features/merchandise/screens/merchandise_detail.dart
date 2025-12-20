@@ -1,6 +1,8 @@
 // Imoirt yang diperlukan
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:trophythreads_mobile/features/review/models/review_entry.dart';
+import 'package:trophythreads_mobile/features/review/services/review_service.dart';
 import 'dart:io' show Platform;
 import '../models/merchandise_entry.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
@@ -45,6 +47,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // Service untuk operasi cart
   late CartService _cartService;
+  late ReviewService _reviewService;
+  ReviewEntry? _reviewData;
+  bool _isLoadingReviews = true;
+
 
   // Method initState dipanggil saat widget pertama kali dibuat
   @override
@@ -60,7 +66,30 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final request = context.read<CookieRequest>();
       _cartService = CartService(request);
+      _reviewService = ReviewService(request);
+      _loadReviewData();
     });
+  }
+
+  Future<void> _loadReviewData() async {
+    setState(() => _isLoadingReviews = true);
+    try {
+      final data = await _reviewService.fetchReviews(
+        productId: widget.merchandise.pk.toString(),
+        stars: 'all',
+      );
+      if (mounted) {
+        setState(() {
+          _reviewData = data;
+          _isLoadingReviews = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading reviews: $e');
+      if (mounted) {
+        setState(() => _isLoadingReviews = false);
+      }
+    }
   }
 
   // Method async untuk mengecek apakah user adalah guest (belum login)
@@ -307,6 +336,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         return const Icon(Icons.star_border, size: 16, color: Colors.grey); // Bintang kosong
       }),
     );
+  }
+
+  double get _averageRating {
+    if (_reviewData == null || _reviewData!.total == 0) return 0.0;
+    int sum = 0;
+    _reviewData!.counts.forEach((star, count) {
+      sum += int.parse(star) * count;
+    });
+    return sum / _reviewData!.total;
   }
 
   // Method build untuk membangun UI halaman detail produk
@@ -648,12 +686,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     const SizedBox(width: 16),
                     const Text('|', style: TextStyle(color: Colors.grey)),
                     const SizedBox(width: 16),
-                    _buildStarRating(4.5),
+                    _isLoadingReviews
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : _buildStarRating(_averageRating),
                     const SizedBox(width: 6),
-                    const Text(
-                      '4.5 (0 reviews)',
-                      style: TextStyle(color: Colors.black54),
-                    ),
+                    _isLoadingReviews
+                        ? const Text(
+                            'Loading...',
+                            style: TextStyle(color: Colors.black54),
+                          )
+                        : Text(
+                            '${_averageRating.toStringAsFixed(1)} (${_reviewData?.total ?? 0} reviews)',
+                            style: const TextStyle(color: Colors.black54),
+                          ),
                   ],
                 ),
                 const SizedBox(height: 20),
