@@ -33,7 +33,7 @@ class MerchandiseEntry {
 }
 
 class Fields {
-    int user;
+    int? user;
     String name;
     int price;
     String category;

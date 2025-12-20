@@ -117,10 +117,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       final response = await request.get(
         'http://localhost:8000/favorites/check/${widget.merchandise.pk}/',
       );
-      // Jika produk sudah di-favorite, update state
-      if (response['is_favorited'] == true) {
+      if (mounted) {
         setState(() {
-          _isFavorite = true;
+          _isFavorite = response['is_favorited'] == true;
           _favoriteId = response['favorite_id'];
         });
       }
@@ -136,8 +135,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     try {
       // Kirim GET request ke endpoint cart
       final response = await request.get('http://localhost:8000/cart/json/');
-      // Jika response berupa List, hitung jumlahnya
-      if (response is List) {
+      if (response is List && mounted) {
         setState(() => _cartCount = response.length);
       }
     } catch (e) {
@@ -148,7 +146,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // Method async untuk toggle status favorite (add/remove)
   Future<void> _toggleFavorite() async {
-    // Set loading state
+    // Check if user can access this feature (must be "user" role)
+    bool canAccess = await LoginPageState.canAccessUserFeature(context, 'Favorites');
+    if (!canAccess) {
+      return;
+    }
+
     setState(() => _isLoadingFavorite = true);
     final request = context.read<CookieRequest>();
 
@@ -194,7 +197,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // Add to Cart menggunakan CartService
   Future<void> _addToCart() async {
-    // Set loading state
+    // Check if user can access this feature (must be "user" role)
+    bool canAccess = await LoginPageState.canAccessUserFeature(context, 'Cart');
+    if (!canAccess) {
+      return;
+    }
+
     setState(() => _isLoadingCart = true);
 
     try {
@@ -221,7 +229,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // Buy Now menggunakan CartService dan navigasi ke CheckoutPage
   Future<void> _buyNow() async {
-    // Set loading state
+    // Check if user can access this feature (must be "user" role)
+    bool canAccess = await LoginPageState.canAccessUserFeature(context, 'Pembelian');
+    if (!canAccess) {
+      return;
+    }
+
     setState(() => _isLoadingCart = true);
 
     try {
@@ -327,11 +340,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           IconButton(
             icon: const Icon(Icons.favorite),
             color: Colors.red,
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              // Check if user can access this feature (must be "user" role)
+              bool canAccess = await LoginPageState.canAccessUserFeature(context, 'Favorites');
+              if (!canAccess) {
+                return;
+              }
+
+              // Navigate ke FavoritesPage dan tunggu result
+              final result = await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const FavoritesPage()),
+                MaterialPageRoute(
+                  builder: (context) => const FavoritesPage(),
+                ),
               );
+              
+              // Refresh favorite status setelah kembali dari favorites page
+              if (result == true && mounted) {
+                await _checkFavoriteStatus();
+              }
             },
           ),
 
@@ -368,7 +395,13 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ],
             ),
             color: Colors.orange,
-            onPressed: () {
+            onPressed: () async {
+              // Check if user can access this feature (must be "user" role)
+              bool canAccess = await LoginPageState.canAccessUserFeature(context, 'Cart');
+              if (!canAccess) {
+                return;
+              }
+
               // Navigate ke CartPage
               Navigator.push(
                 context,
@@ -1068,6 +1101,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: () async {
+                          // Check if user can access this feature (must be "user" role)
+                          bool canAccess = await LoginPageState.canAccessUserFeature(context, 'Review');
+                          if (!canAccess) {
+                            return;
+                          }
+
                           final result = await Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -1089,7 +1128,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           backgroundColor: const Color(0xFFEA580C),
                         ),
                       ),
-                    ),
                     ],
                   ),
                 ),

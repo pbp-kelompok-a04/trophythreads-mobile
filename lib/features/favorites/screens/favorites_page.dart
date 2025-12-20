@@ -95,14 +95,20 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFF5F5),
-      appBar: _buildAppBar(),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : favorites.isEmpty
-          ? _buildEmptyState()
-          : _buildFavoritesList(),
+    return WillPopScope(  // Tambahkan ini
+      onWillPop: () async {
+        Navigator.pop(context, true);
+        return false;
+      },
+      child: Scaffold(  // Scaffold yang sudah ada
+        backgroundColor: const Color(0xFFFFF5F5),
+        appBar: _buildAppBar(),
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : favorites.isEmpty
+                ? _buildEmptyState()
+                : _buildFavoritesList(),
+      ),
     );
   }
 
@@ -112,7 +118,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
       elevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => Navigator.pop(context),
+        onPressed: () => Navigator.pop(context, true), 
       ),
       titleSpacing: 0, // Hapus spacing default antara leading dan title
       title: Container(
