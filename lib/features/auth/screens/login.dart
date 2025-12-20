@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:trophythreads_mobile/features/auth/models/profile.dart';
+import 'package:trophythreads_mobile/features/merchandise/screens/merchandise_form.dart';
+import 'package:trophythreads_mobile/features/merchandise/screens/merchandise_list.dart';
 import 'package:trophythreads_mobile/main.dart';
 import 'package:trophythreads_mobile/features/auth/screens/register.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
@@ -73,12 +75,12 @@ class LoginPageState extends State<LoginPage> {
             },
           ),
           TextButton(
-            child: const Text('Daftar Sekarang'),
+            child: const Text('Masuk Sekarang'),
             onPressed: () {
               Navigator.pop(context);
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const RegisterPage()),
+                MaterialPageRoute(builder: (context) => const LoginPage()),
               );
             },
           ),
@@ -188,7 +190,7 @@ class LoginPageState extends State<LoginPage> {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => MyHomePage(),
+                              builder: (context) => MerchandiseEntryListPage(),
                             ),
                           );
                           ScaffoldMessenger.of(context)
@@ -269,7 +271,7 @@ class LoginPageState extends State<LoginPage> {
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => MyHomePage(),
+                                    builder: (context) => MerchandiseEntryListPage(),
                                   ),
                                 );
                                 ScaffoldMessenger.of(context)
