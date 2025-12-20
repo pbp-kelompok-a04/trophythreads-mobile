@@ -672,37 +672,71 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ),
                 const SizedBox(height: 12),
 
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.inventory_2, size: 18, color: Colors.blue),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${fields.stock} in stock',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black54,
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.inventory_2, size: 18, color: Colors.blue),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${fields.stock} in stock',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Text('|', style: TextStyle(color: Colors.redAccent)),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _isLoadingReviews
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : _buildStarRating(_averageRating),
+                            const SizedBox(width: 6),
+                            _isLoadingReviews
+                                ? const Text(
+                                    'Loading...',
+                                    style: TextStyle(color: Colors.black54),
+                                  )
+                                : Text(
+                                    '${_averageRating.toStringAsFixed(1)} (${_reviewData?.total ?? 0} reviews)',
+                                    style: const TextStyle(color: Colors.black54),
+                                  ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.remove_red_eye_outlined, size: 18, color: Colors.deepOrange),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${fields.productViews} views',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    const Text('|', style: TextStyle(color: Colors.grey)),
-                    const SizedBox(width: 16),
-                    _isLoadingReviews
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : _buildStarRating(_averageRating),
-                    const SizedBox(width: 6),
-                    _isLoadingReviews
-                        ? const Text(
-                            'Loading...',
-                            style: TextStyle(color: Colors.black54),
-                          )
-                        : Text(
-                            '${_averageRating.toStringAsFixed(1)} (${_reviewData?.total ?? 0} reviews)',
-                            style: const TextStyle(color: Colors.black54),
-                          ),
                   ],
                 ),
                 const SizedBox(height: 20),
