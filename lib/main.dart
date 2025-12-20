@@ -24,6 +24,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Trophy Threads',
         theme: ThemeData(
+          fontFamily: 'Nunito',
           colorScheme: const ColorScheme(
             brightness: Brightness.light,
             primary: Color(0xFF990B29),
