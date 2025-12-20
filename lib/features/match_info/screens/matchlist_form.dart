@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import '../models/match_entry.dart';
+import 'package:trophythreads_mobile/features/match_info/models/match_entry.dart';
+import 'package:provider/provider.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'dart:convert';
 
 class MatchFormPage extends StatefulWidget {
-  const MatchFormPage({super.key});
+  final MatchEntry? match;
+  const MatchFormPage({super.key, this.match});
 
   @override
   State<MatchFormPage> createState() => _MatchFormPageState();
@@ -18,28 +22,59 @@ class _MatchFormPageState extends State<MatchFormPage> {
   Team _awayTeam = Team(name: '', flag: '');
   int _homeScore = 0;
   int _awayScore = 0;
-  
+
   final TextEditingController _dateController = TextEditingController();
 
-  // dummy sementara untuk mengecek team
-  final List<Team> availableTeams = [
-    Team(name: "Indonesia", flag: "https://flagcdn.com/w320/id.png"),
-    Team(name: "Malaysia", flag: "https://flagcdn.com/w320/my.png"),
-    Team(name: "Thailand", flag: "https://flagcdn.com/w320/th.png"),
-    Team(name: "Vietnam", flag: "https://flagcdn.com/w320/vn.png"),
-    Team(name: "Singapore", flag: "https://flagcdn.com/w320/sg.png"),
-    Team(name: "Japan", flag: "https://flagcdn.com/w320/jp.png"),
-    Team(name: "South Korea", flag: "https://flagcdn.com/w320/kr.png"),
-    Team(name: "Saudi Arabia", flag: "https://flagcdn.com/w320/sa.png"),
-    Team(name: "Australia", flag: "https://flagcdn.com/w320/au.png"),
-    Team(name: "Qatar", flag: "https://flagcdn.com/w320/qa.png"),
-  ];
+  List<Team> availableTeams = [];
+  bool _isLoadingTeams = true;
 
   // set agar nilai awal tanggal adalah hari ini
   @override
   void initState() {
     super.initState();
     _dateController.text = "${_time.day}-${_time.month}-${_time.year}";
+
+    if (widget.match != null) {
+      _title = widget.match!.title;
+      _time = widget.match!.date;
+      _city = widget.match!.city;
+      _country = widget.match!.country;
+      _homeScore = widget.match!.scoreHome;
+      _awayScore = widget.match!.scoreAway;
+      _homeTeam = widget.match!.homeTeam;
+      _awayTeam = widget.match!.awayTeam;
+      _dateController.text = "${_time.day}-${_time.month}-${_time.year}";
+    } else {
+      _dateController.text = "${_time.day}-${_time.month}-${_time.year}";
+    }
+    _fetchTeams();
+  }
+
+  Future<void> _fetchTeams() async {
+    // ga rebuild kalau data berubah
+    final request = Provider.of<CookieRequest>(context, listen: false);
+    try {
+      final response = await request.get(
+        'http://127.0.0.1:8000/informasi/json-country/',
+      );
+      List<Team> loadedTeams = [];
+      for (var country in response) {
+        loadedTeams.add(Team.fromJson(country));
+      }
+      if (mounted) {
+        setState(() {
+          availableTeams = loadedTeams;
+          _isLoadingTeams = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingTeams = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Gagal memuat data negara.")),
+        );
+      }
+    }
   }
 
   // fungsi untuk menampilkan date picker
@@ -53,7 +88,6 @@ class _MatchFormPageState extends State<MatchFormPage> {
     if (picked != null && picked != _time) {
       setState(() {
         _time = picked;
-        // Update teks di input field
         _dateController.text = "${picked.day}-${picked.month}-${picked.year}";
       });
     }
@@ -61,570 +95,663 @@ class _MatchFormPageState extends State<MatchFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final request = context.watch<CookieRequest>();
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Back ke halaman sebelumnya
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.arrow_back,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      Text(
-                        "Kembali ke Match",
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // card utama untuk form input
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
+        child: _isLoadingTeams
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // header untuk judul
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 16,
-                          horizontal: 20,
-                        ),
-                        // hanya atas yang circular bawah tidak
-                        decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(16),
-                            topRight: Radius.circular(16),
-                          ),
-                          gradient: LinearGradient(
-                            colors: [
-                              Theme.of(context).colorScheme.primary,
-                              Theme.of(context).colorScheme.secondary,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: const Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                      // Back ke halaman sebelumnya
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                        child: Row(
                           children: [
-                            Text(
-                              "Tambah Informasi Pertandingan",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            Icon(
+                              Icons.arrow_back,
+                              size: 18,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
-                            SizedBox(height: 4),
+                            SizedBox(width: 8),
                             Text(
-                              "Bagikan informasi pertandingan terbaru untuk komunitas!",
+                              "Kembali ke Match",
                               style: TextStyle(
-                                color: Colors.white, // Putih agak transparan
-                                fontSize: 14,
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      // form input di container putih bawah deskripsi
-                      Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Form(
-                          key: _formKey,
-                          child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // input judul pertandingan
-                                const Text("Judul Pertandingan"),
-                                SizedBox(height: 4),
-                                TextFormField(
-                                  decoration: InputDecoration(
-                                    hintText: "Masukkan Judul Pertandingan...",
-                                    hintStyle: TextStyle(
-                                      color: Color(0xFFBDBDBD),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: Color(0xE6E6E6E6),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.secondary,
-                                        width: 2.0,
-                                      ),
-                                    ),
-                                  ),
-                                  onChanged: (String? value) {
-                                    setState(() {
-                                      _title = value!; // yakin tidak null
-                                    });
-                                  },
-                                  validator: (String? value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Judul pertandingan tidak boleh kosong!';
-                                    }
-                                    if (value.length > 255) {
-                                      return 'Judul pertandingan tidak boleh lebih dari 255 karakter!';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                SizedBox(height: 16),
-                                // input tanggal pertandingan
-                                const Text("Tanggal Pertandingan"),
-                                SizedBox(height: 4),
-                                TextFormField(
-                                  controller: _dateController,
-                                  readOnly: true,
-                                  decoration: InputDecoration(
-                                    prefixIcon: const Icon(Icons.calendar_today),
-                                    hintText: "DD-MM-YYYY",
-                                    hintStyle: TextStyle(
-                                      color: Color(0xFFBDBDBD),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: Color(0xE6E6E6E6),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.secondary,
-                                        width: 2.0,
-                                      ),
-                                    ),
-                                  ),
-                                  onTap: () {
-                                    _selectDate(context);
-                                  },
-                                ),
-                                SizedBox(height: 16),
-                                // input kota pertandingan
-                                const Text("Kota Pertandingan"),
-                                SizedBox(height: 4),
-                                TextFormField(
-                                  decoration: InputDecoration(
-                                    hintText: "Masukkan Kota Pertandingan...",
-                                    hintStyle: TextStyle(
-                                      color: Color(0xFFBDBDBD),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: Color(0xE6E6E6E6),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.secondary,
-                                        width: 2.0,
-                                      ),
-                                    ),
-                                  ),
-                                  onChanged: (String? value) {
-                                    setState(() {
-                                      _city = value!;
-                                    });
-                                  },
-                                  validator: (String? value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Kota pertandingan tidak boleh kosong!';
-                                    }
-                                    if (value.length > 100) {
-                                      return 'Kota pertandingan tidak boleh lebih dari 100 karakter!';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                SizedBox(height: 16),
-                                // input negara pertandingan
-                                const Text("Negara Pertandingan"),
-                                SizedBox(height: 4),
-                                TextFormField(
-                                  decoration: InputDecoration(
-                                    hintText: "Masukkan Negara Pertandingan...",
-                                    hintStyle: TextStyle(
-                                      color: Color(0xFFBDBDBD),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: Color(0xE6E6E6E6),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.secondary,
-                                        width: 2.0,
-                                      ),
-                                    ),
-                                  ),
-                                  onChanged: (String? value) {
-                                    setState(() {
-                                      _country = value!;
-                                    });
-                                  },
-                                  validator: (String? value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Negara pertandingan tidak boleh kosong!';
-                                    }
-                                    if (value.length > 100) {
-                                      return 'Negara pertandingan tidak boleh lebih dari 100 karakter!';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                SizedBox(height: 16),
-                                // input home team
-                                const Text("Tim Kandang"),
-                                SizedBox(height: 4),
-                                // menggunakan autocomplete untuk input tim kandang
-                                Autocomplete<Team>(
-                                  optionsBuilder:
-                                      (TextEditingValue textEditingValue) {
-                                        if (textEditingValue.text.isEmpty) {
-                                          return const Iterable<Team>.empty();
-                                        }
-                                        // mengembalikan list tim yang mengandung teks yang diinputkan
-                                        return availableTeams.where((
-                                          Team option,
-                                        ) {
-                                          return option.name
-                                              .toLowerCase()
-                                              .contains(
-                                                textEditingValue.text
-                                                    .toLowerCase(),
-                                              );
-                                        });
-                                      },
-                                  displayStringForOption: (Team option) =>
-                                      option.name,
-                                  onSelected: (Team selection) {
-                                    setState(() {
-                                      _homeTeam = selection;
-                                    });
-                                  },
-                                  // mengembalikan widget TextFormField sebagai field input
-                                  // biar bisa validasi dan mengatur desainnya
-                                  fieldViewBuilder:
-                                      (context, controller, focusNode, _) {
-                                        return TextFormField(
-                                          controller: controller,
-                                          focusNode: focusNode,
-                                          decoration: InputDecoration(
-                                            hintText: "Masukkan Tim Kandang...",
-                                            hintStyle: TextStyle(
-                                              color: Color(0xFFBDBDBD),
-                                            ),
-                                            enabledBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                color: Color(0xE6E6E6E6),
-                                                width: 1.5,
-                                              ),
-                                            ),
-                                            focusedBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.secondary,
-                                                width: 2.0,
-                                              ),
-                                            ),
-                                          ),
-                                          validator: (String? value) {
-                                            if (value == null ||
-                                                value.isEmpty) {
-                                              return 'Tim kandang tidak boleh kosong!';
-                                            }
-                                            // jika tim tidak ada di daftar availableTeams
-                                            bool valid = availableTeams.any(
-                                              (team) =>
-                                                  team.name.toLowerCase() == value.toLowerCase(),
-                                            );
-                                            if (!valid) {
-                                              return 'Tim kandang tidak ditemukan!';
-                                            }
-                                            return null;
-                                          },
-                                        );
-                                      },
-                                ),
-                                SizedBox(height: 16),
-                                // input home score
-                                const Text("Skor Tim Kandang"),
-                                SizedBox(height: 4),
-                                TextFormField(
-                                  decoration: InputDecoration(
-                                    hintText: "Masukkan Skor Kandang...",
-                                    hintStyle: TextStyle(
-                                      color: Color(0xFFBDBDBD),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: Color(0xE6E6E6E6),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.secondary,
-                                        width: 2.0,
-                                      ),
-                                    ),
-                                  ),
-                                  onChanged: (String? value) {
-                                    setState(() {
-                                      _homeScore = int.tryParse(value ?? '') ?? 0;
-                                    });
-                                  },
-                                  validator: (String? value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Skor kandang tidak boleh kosong!';
-                                    }
-                                    if (int.tryParse(value) == null) {
-                                      return 'Skor kandang harus berupa angka!';
-                                    }
-                                    if (int.tryParse(value)! < 0) {
-                                      return 'Skor kandang tidak boleh negatif!';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                SizedBox(height: 16),
-                                // input away score
-                                const Text("Skor Tim Tandang"),
-                                SizedBox(height: 4),
-                                TextFormField(
-                                  decoration: InputDecoration(
-                                    hintText: "Masukkan Skor Tim Tandang...",
-                                    hintStyle: TextStyle(
-                                      color: Color(0xFFBDBDBD),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: Color(0xE6E6E6E6),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.secondary,
-                                        width: 2.0,
-                                      ),
-                                    ),
-                                  ),
-                                  onChanged: (String? value) {
-                                    setState(() {
-                                      _awayScore = int.tryParse(value ?? '') ?? 0;
-                                    });
-                                  },
-                                  validator: (String? value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Skor tandang tidak boleh kosong!';
-                                    }
-                                    if (int.tryParse(value) == null) {
-                                      return 'Skor tandang harus berupa angka!';
-                                    }
-                                    if (int.tryParse(value)! < 0) {
-                                      return 'Skor tandang tidak boleh negatif!';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                SizedBox(height: 16),
-                                // input away team
-                                const Text("Tim Tandang"),
-                                SizedBox(height: 4),
-                                Autocomplete<Team>(
-                                  optionsBuilder:
-                                      (TextEditingValue textEditingValue) {
-                                        if (textEditingValue.text.isEmpty) {
-                                          return const Iterable<Team>.empty();
-                                        }
-                                        // mengembalikan list tim yang mengandung teks yang diinputkan
-                                        return availableTeams.where((
-                                          Team option,
-                                        ) {
-                                          return option.name
-                                              .toLowerCase()
-                                              .contains(
-                                                textEditingValue.text
-                                                    .toLowerCase(),
-                                              );
-                                        });
-                                      },
-                                  displayStringForOption: (Team option) =>
-                                      option.name,
-                                  onSelected: (Team selection) {
-                                    setState(() {
-                                      _awayTeam = selection;
-                                    });
-                                  },
-                                  // mengembalikan widget TextFormField sebagai field input
-                                  // biar bisa validasi dan mengatur desainnya
-                                  fieldViewBuilder:
-                                      (context, controller, focusNode, _) {
-                                        return TextFormField(
-                                          controller: controller,
-                                          focusNode: focusNode,
-                                          decoration: InputDecoration(
-                                            hintText: "Masukkan Tim Tandang...",
-                                            hintStyle: TextStyle(
-                                              color: Color(0xFFBDBDBD),
-                                            ),
-                                            enabledBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                color: Color(0xE6E6E6E6),
-                                                width: 1.5,
-                                              ),
-                                            ),
-                                            focusedBorder: OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.secondary,
-                                                width: 2.0,
-                                              ),
-                                            ),
-                                          ),
-                                          validator: (String? value) {
-                                            if (value == null ||
-                                                value.isEmpty) {
-                                              return 'Tim tandang tidak boleh kosong!';
-                                            }
-                                            // jika tim tidak ada di daftar availableTeams
-                                            bool valid = availableTeams.any(
-                                              (team) =>
-                                                  team.name.toLowerCase() == value.toLowerCase(),
-                                            );
-                                            if (!valid) {
-                                              return 'Tim tandang tidak ditemukan!';
-                                            }
-                                            return null;
-                                          },
-                                        );
-                                      },
-                                ),
+                      const SizedBox(height: 20),
 
-                                SizedBox(height: 15),
-                                Divider(thickness: 1, color: Colors.grey[300]),
-                                SizedBox(height: 15),
-                                Align(
-                                  alignment: Alignment.bottomCenter,
-                                  child: SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton(
-                                      style: ButtonStyle(
-                                        backgroundColor:
-                                            MaterialStateProperty.all(
-                                              Theme.of(
+                      // card utama untuk form input
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color.fromARGB(9, 0, 0, 0),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            // header untuk judul
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 20,
+                              ),
+                              // hanya atas yang circular bawah tidak
+                              decoration: BoxDecoration(
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(16),
+                                  topRight: Radius.circular(16),
+                                ),
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Theme.of(context).colorScheme.primary,
+                                    Theme.of(context).colorScheme.secondary,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    widget.match == null
+                                        ? "Tambah Informasi Pertandingan"
+                                        : "Ubah Informasi Pertandingan",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    widget.match == null
+                                        ? "Bagikan informasi pertandingan terbaru untuk komunitas!"
+                                        : "Koreksi informasi pertandingan untuk memastikan data tetap akurat!",
+                                    style: TextStyle(
+                                      color:
+                                          Colors.white, // Putih agak transparan
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // form input di container putih bawah deskripsi
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: Form(
+                                key: _formKey,
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // input judul pertandingan
+                                      const Text("Judul Pertandingan"),
+                                      SizedBox(height: 4),
+                                      TextFormField(
+                                        initialValue: _title,
+                                        decoration: InputDecoration(
+                                          hintText:
+                                              "Masukkan Judul Pertandingan...",
+                                          hintStyle: TextStyle(
+                                            color: Color(0xFFBDBDBD),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: Color(0xE6E6E6E6),
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: Theme.of(
                                                 context,
                                               ).colorScheme.secondary,
+                                              width: 2.0,
                                             ),
+                                          ),
+                                        ),
+                                        onChanged: (String? value) {
+                                          setState(() {
+                                            _title = value!; // yakin tidak null
+                                          });
+                                        },
+                                        validator: (String? value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Judul pertandingan tidak boleh kosong!';
+                                          }
+                                          if (value.length > 255) {
+                                            return 'Judul pertandingan tidak boleh lebih dari 255 karakter!';
+                                          }
+                                          return null;
+                                        },
                                       ),
-                                      onPressed: () {
-                                        if (_formKey.currentState!.validate()) {
-                                          showDialog(
-                                            context: context,
-                                            builder: (context) {
-                                              return AlertDialog(
-                                                title: const Text('Pertandingan berhasil disimpan!'),
-                                                content: SingleChildScrollView(
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text('Judul: $_title'),
-                                                      Text('Tanggal: ${_dateController.text}'),
-                                                      Text('Kota: $_city'),
-                                                      Text('Negara: $_country'),
-                                                      Text('Tim Kandang: ${_homeTeam.name}'),
-                                                      Text('Skor Kandang: $_homeScore'),
-                                                      Text('Tim Tandang: ${_awayTeam.name}'),
-                                                      Text('Skor Tandang: $_awayScore'),
-                                                    ],
+                                      SizedBox(height: 16),
+                                      // input tanggal pertandingan
+                                      const Text("Tanggal Pertandingan"),
+                                      SizedBox(height: 4),
+                                      TextFormField(
+                                        controller: _dateController,
+                                        readOnly: true,
+                                        decoration: InputDecoration(
+                                          prefixIcon: const Icon(
+                                            Icons.calendar_today,
+                                          ),
+                                          hintText: "DD-MM-YYYY",
+                                          hintStyle: TextStyle(
+                                            color: Color(0xFFBDBDBD),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: Color(0xE6E6E6E6),
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.secondary,
+                                              width: 2.0,
+                                            ),
+                                          ),
+                                        ),
+                                        onTap: () {
+                                          _selectDate(context);
+                                        },
+                                      ),
+                                      SizedBox(height: 16),
+                                      // input kota pertandingan
+                                      const Text("Kota Pertandingan"),
+                                      SizedBox(height: 4),
+                                      TextFormField(
+                                        initialValue: _city,
+                                        decoration: InputDecoration(
+                                          hintText:
+                                              "Masukkan Kota Pertandingan...",
+                                          hintStyle: TextStyle(
+                                            color: Color(0xFFBDBDBD),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: Color(0xE6E6E6E6),
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.secondary,
+                                              width: 2.0,
+                                            ),
+                                          ),
+                                        ),
+                                        onChanged: (String? value) {
+                                          setState(() {
+                                            _city = value!;
+                                          });
+                                        },
+                                        validator: (String? value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Kota pertandingan tidak boleh kosong!';
+                                          }
+                                          if (value.length > 100) {
+                                            return 'Kota pertandingan tidak boleh lebih dari 100 karakter!';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      SizedBox(height: 16),
+                                      // input negara pertandingan
+                                      const Text("Negara Pertandingan"),
+                                      SizedBox(height: 4),
+                                      TextFormField(
+                                        initialValue: _country,
+                                        decoration: InputDecoration(
+                                          hintText:
+                                              "Masukkan Negara Pertandingan...",
+                                          hintStyle: TextStyle(
+                                            color: Color(0xFFBDBDBD),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: Color(0xE6E6E6E6),
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.secondary,
+                                              width: 2.0,
+                                            ),
+                                          ),
+                                        ),
+                                        onChanged: (String? value) {
+                                          setState(() {
+                                            _country = value!;
+                                          });
+                                        },
+                                        validator: (String? value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Negara pertandingan tidak boleh kosong!';
+                                          }
+                                          if (value.length > 100) {
+                                            return 'Negara pertandingan tidak boleh lebih dari 100 karakter!';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      SizedBox(height: 16),
+                                      // input home team
+                                      const Text("Tim Kandang"),
+                                      SizedBox(height: 4),
+                                      // menggunakan autocomplete untuk input tim kandang
+                                      Autocomplete<Team>(
+                                        initialValue: TextEditingValue(
+                                          text: _homeTeam.name,
+                                        ),
+                                        optionsBuilder:
+                                            (
+                                              TextEditingValue textEditingValue,
+                                            ) {
+                                              if (textEditingValue
+                                                  .text
+                                                  .isEmpty) {
+                                                return const Iterable<
+                                                  Team
+                                                >.empty();
+                                              }
+                                              // mengembalikan list tim yang mengandung teks yang diinputkan
+                                              return availableTeams.where((
+                                                Team option,
+                                              ) {
+                                                return option.name
+                                                    .toLowerCase()
+                                                    .contains(
+                                                      textEditingValue.text
+                                                          .toLowerCase(),
+                                                    );
+                                              });
+                                            },
+                                        displayStringForOption: (Team option) =>
+                                            option.name,
+                                        onSelected: (Team selection) {
+                                          setState(() {
+                                            _homeTeam = selection;
+                                          });
+                                        },
+                                        // mengembalikan widget TextFormField sebagai field input
+                                        // biar bisa validasi dan mengatur desainnya
+                                        fieldViewBuilder:
+                                            (
+                                              context,
+                                              controller,
+                                              focusNode,
+                                              _,
+                                            ) {
+                                              return TextFormField(
+                                                controller: controller,
+                                                focusNode: focusNode,
+                                                decoration: InputDecoration(
+                                                  hintText:
+                                                      "Masukkan Tim Kandang...",
+                                                  hintStyle: TextStyle(
+                                                    color: Color(0xFFBDBDBD),
                                                   ),
+                                                  enabledBorder:
+                                                      OutlineInputBorder(
+                                                        borderSide: BorderSide(
+                                                          color: Color(
+                                                            0xE6E6E6E6,
+                                                          ),
+                                                          width: 1.5,
+                                                        ),
+                                                      ),
+                                                  focusedBorder:
+                                                      OutlineInputBorder(
+                                                        borderSide: BorderSide(
+                                                          color:
+                                                              Theme.of(context)
+                                                                  .colorScheme
+                                                                  .secondary,
+                                                          width: 2.0,
+                                                        ),
+                                                      ),
                                                 ),
-                                                actions: [
-                                                  TextButton(
-                                                    child: const Text('OK'),
-                                                    onPressed: () {
-                                                      Navigator.pop(context);
-                                                      setState(() {
-                                                        _formKey.currentState!.reset();
-                                                        _homeTeam = Team(name: '', flag: '');
-                                                        _awayTeam = Team(name: '', flag: '');
-                                                      });
-                                                    },
-                                                  ),
-                                                ],
+                                                validator: (String? value) {
+                                                  if (value == null ||
+                                                      value.isEmpty) {
+                                                    return 'Tim kandang tidak boleh kosong!';
+                                                  }
+                                                  // jika tim tidak ada di daftar availableTeams
+                                                  bool
+                                                  valid = availableTeams.any(
+                                                    (team) =>
+                                                        team.name
+                                                            .toLowerCase() ==
+                                                        value.toLowerCase(),
+                                                  );
+                                                  if (!valid) {
+                                                    return 'Tim kandang tidak ditemukan!';
+                                                  }
+                                                  return null;
+                                                },
                                               );
                                             },
-                                          );
-                                        }
-                                      },
-                                      child: const Text(
-                                        "Save",
-                                        style: TextStyle(color: Colors.white),
                                       ),
-                                    ),
+                                      SizedBox(height: 16),
+                                      // input home score
+                                      const Text("Skor Tim Kandang"),
+                                      SizedBox(height: 4),
+                                      TextFormField(
+                                        initialValue: widget.match != null
+                                            ? _homeScore.toString()
+                                            : null,
+                                        decoration: InputDecoration(
+                                          hintText: "Masukkan Skor Kandang...",
+                                          hintStyle: TextStyle(
+                                            color: Color(0xFFBDBDBD),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: Color(0xE6E6E6E6),
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.secondary,
+                                              width: 2.0,
+                                            ),
+                                          ),
+                                        ),
+                                        onChanged: (String? value) {
+                                          setState(() {
+                                            _homeScore =
+                                                int.tryParse(value ?? '') ?? 0;
+                                          });
+                                        },
+                                        validator: (String? value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Skor kandang tidak boleh kosong!';
+                                          }
+                                          if (int.tryParse(value) == null) {
+                                            return 'Skor kandang harus berupa angka!';
+                                          }
+                                          if (int.tryParse(value)! < 0) {
+                                            return 'Skor kandang tidak boleh negatif!';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      SizedBox(height: 16),
+                                      // input away score
+                                      const Text("Skor Tim Tandang"),
+                                      SizedBox(height: 4),
+                                      TextFormField(
+                                        initialValue: widget.match != null
+                                            ? _awayScore.toString()
+                                            : null,
+                                        decoration: InputDecoration(
+                                          hintText:
+                                              "Masukkan Skor Tim Tandang...",
+                                          hintStyle: TextStyle(
+                                            color: Color(0xFFBDBDBD),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: Color(0xE6E6E6E6),
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.secondary,
+                                              width: 2.0,
+                                            ),
+                                          ),
+                                        ),
+                                        onChanged: (String? value) {
+                                          setState(() {
+                                            _awayScore =
+                                                int.tryParse(value ?? '') ?? 0;
+                                          });
+                                        },
+                                        validator: (String? value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Skor tandang tidak boleh kosong!';
+                                          }
+                                          if (int.tryParse(value) == null) {
+                                            return 'Skor tandang harus berupa angka!';
+                                          }
+                                          if (int.tryParse(value)! < 0) {
+                                            return 'Skor tandang tidak boleh negatif!';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      SizedBox(height: 16),
+                                      // input away team
+                                      const Text("Tim Tandang"),
+                                      SizedBox(height: 4),
+                                      Autocomplete<Team>(
+                                        initialValue: TextEditingValue(
+                                          text: _awayTeam.name,
+                                        ),
+                                        optionsBuilder:
+                                            (
+                                              TextEditingValue textEditingValue,
+                                            ) {
+                                              if (textEditingValue
+                                                  .text
+                                                  .isEmpty) {
+                                                return const Iterable<
+                                                  Team
+                                                >.empty();
+                                              }
+                                              // mengembalikan list tim yang mengandung teks yang diinputkan
+                                              return availableTeams.where((
+                                                Team option,
+                                              ) {
+                                                return option.name
+                                                    .toLowerCase()
+                                                    .contains(
+                                                      textEditingValue.text
+                                                          .toLowerCase(),
+                                                    );
+                                              });
+                                            },
+                                        displayStringForOption: (Team option) =>
+                                            option.name,
+                                        onSelected: (Team selection) {
+                                          setState(() {
+                                            _awayTeam = selection;
+                                          });
+                                        },
+                                        // mengembalikan widget TextFormField sebagai field input
+                                        // biar bisa validasi dan mengatur desainnya
+                                        fieldViewBuilder:
+                                            (
+                                              context,
+                                              controller,
+                                              focusNode,
+                                              _,
+                                            ) {
+                                              return TextFormField(
+                                                controller: controller,
+                                                focusNode: focusNode,
+                                                decoration: InputDecoration(
+                                                  hintText:
+                                                      "Masukkan Tim Tandang...",
+                                                  hintStyle: TextStyle(
+                                                    color: Color(0xFFBDBDBD),
+                                                  ),
+                                                  enabledBorder:
+                                                      OutlineInputBorder(
+                                                        borderSide: BorderSide(
+                                                          color: Color(
+                                                            0xE6E6E6E6,
+                                                          ),
+                                                          width: 1.5,
+                                                        ),
+                                                      ),
+                                                  focusedBorder:
+                                                      OutlineInputBorder(
+                                                        borderSide: BorderSide(
+                                                          color:
+                                                              Theme.of(context)
+                                                                  .colorScheme
+                                                                  .secondary,
+                                                          width: 2.0,
+                                                        ),
+                                                      ),
+                                                ),
+                                                validator: (String? value) {
+                                                  if (value == null ||
+                                                      value.isEmpty) {
+                                                    return 'Tim tandang tidak boleh kosong!';
+                                                  }
+                                                  // jika tim tidak ada di daftar availableTeams
+                                                  bool
+                                                  valid = availableTeams.any(
+                                                    (team) =>
+                                                        team.name
+                                                            .toLowerCase() ==
+                                                        value.toLowerCase(),
+                                                  );
+                                                  if (!valid) {
+                                                    return 'Tim tandang tidak ditemukan!';
+                                                  }
+                                                  return null;
+                                                },
+                                              );
+                                            },
+                                      ),
+
+                                      SizedBox(height: 15),
+                                      Divider(
+                                        thickness: 1,
+                                        color: Colors.grey[300],
+                                      ),
+                                      SizedBox(height: 15),
+                                      Align(
+                                        alignment: Alignment.bottomCenter,
+                                        child: SizedBox(
+                                          width: double.infinity,
+                                          child: ElevatedButton(
+                                            style: ButtonStyle(
+                                              backgroundColor:
+                                                  MaterialStateProperty.all(
+                                                    Theme.of(
+                                                      context,
+                                                    ).colorScheme.secondary,
+                                                  ),
+                                            ),
+                                            onPressed: () async {
+                                              if (_formKey.currentState!
+                                                  .validate()) {
+                                                String pathUrl;
+                                                if (widget.match == null) {
+                                                  pathUrl =
+                                                      'http://127.0.0.1:8000/informasi/create-flutter/';
+                                                } else {
+                                                  pathUrl =
+                                                      'http://127.0.0.1:8000/informasi/edit-flutter/${widget.match!.id}/';
+                                                }
+                                                
+                                                final response = await request.postJson(
+                                                  pathUrl,
+                                                  jsonEncode({
+                                                    "title": _title,
+                                                    // sesuaiin sm format django yyyy-mm-dd
+                                                    "date":
+                                                        "${_time.year}-${_time.month.toString().padLeft(2, '0')}-${_time.day.toString().padLeft(2, '0')}",
+                                                    "city": _city,
+                                                    "country": _country,
+                                                    "home_team": _homeTeam.name,
+                                                    "away_team": _awayTeam.name,
+                                                    "score_home_team": _homeScore,
+                                                    "score_away_team": _awayScore,
+                                                    "views": widget.match?.views ?? 0,
+                                                  }),
+                                                );
+                                                if (context.mounted) {
+                                                  if (response['status'] ==
+                                                      'success') {
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                          "Pertandingan telah disimpan!",
+                                                        ),
+                                                      ),
+                                                    );
+                                                    Navigator.pop(context, true);
+                                                  } else {
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                          "Terjadi kesalahan, silakan coba lagi.",
+                                                        ),
+                                                      ),
+                                                    );
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            child: const Text(
+                                              "Simpan",
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
+              ),
       ),
     );
   }

@@ -342,7 +342,7 @@ class LoginPageState extends State<LoginPage> {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => MerchandiseEntryListPage(),
+                              builder: (context) => MainScaffold(),
                             ),
                           );
                           ScaffoldMessenger.of(context)
@@ -423,7 +423,7 @@ class LoginPageState extends State<LoginPage> {
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => MerchandiseEntryListPage(),
+                                    builder: (context) => MainScaffold(),
                                   ),
                                 );
                                 ScaffoldMessenger.of(context)
