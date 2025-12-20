@@ -9,7 +9,14 @@ import '../models/merchandise_entry.dart';
 // Widget StatefulWidget untuk halaman form merchandise
 // Form ini digunakan untuk menambahkan produk merchandise baru
 class MerchandiseFormPage extends StatefulWidget {
-  const MerchandiseFormPage({super.key});
+  final MerchandiseEntry? initial; // data awal saat edit
+  final bool isEdit; // true jika mode edit
+
+  const MerchandiseFormPage({
+    super.key,
+    this.initial,
+    this.isEdit = false,
+  });
 
   // Method untuk membuat state dari widget ini
   @override
@@ -30,6 +37,27 @@ class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
   String _description = ''; // Deskripsi produk
   int _productViews = 0; // Jumlah views produk
   bool _isFeatured = false; // Flag apakah produk featured
+  bool _submitting = false; // State untuk loading saat submit
+  @override
+  void initState() {
+    super.initState();
+    // Prefill bila mode edit
+    final initial = widget.initial;
+    if (initial != null) {
+      _name = initial.fields.name;
+      _price = initial.fields.price;
+      _category = initial.fields.category;
+      _stock = initial.fields.stock;
+      _thumbnail = initial.fields.thumbnail;
+      // Server menyimpan <br>; convert jadi \n agar nyaman di form
+      _description = initial.fields.description
+          .replaceAll('<br>', '\n')
+          .replaceAll('br>', '\n')
+          .replaceAll('<br', '\n');
+      _productViews = initial.fields.productViews;
+      _isFeatured = initial.fields.isFeatured;
+    }
+  }
 
   // List kategori produk yang tersedia untuk dropdown
   final List<String> _categories = [
@@ -163,6 +191,7 @@ class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
                                 const Text("Nama Merchandise"),
                                 SizedBox(height: 4),
                                 TextFormField(
+                                  initialValue: _name,
                                   decoration: InputDecoration(
                                     hintText: "Masukkan nama produk...",
                                     hintStyle: TextStyle(
@@ -204,6 +233,7 @@ class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
                                 const Text("Harga"),
                                 SizedBox(height: 4),
                                 TextFormField(
+                                  initialValue: _price == 0 ? '' : _price.toString(),
                                   decoration: InputDecoration(
                                     hintText: "Masukkan Harga Produk...",
                                     hintStyle: TextStyle(
@@ -302,6 +332,7 @@ class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
                                 const Text("Stok"),
                                 SizedBox(height: 4),
                                 TextFormField(
+                                  initialValue: _stock == 0 ? '' : _stock.toString(),
                                   decoration: InputDecoration(
                                     hintText: "Masukkan Stok Produk...",
                                     hintStyle: TextStyle(
@@ -453,46 +484,52 @@ class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
                                               ).colorScheme.secondary,
                                             ),
                                       ),
-                                      onPressed: () async {
+                                      onPressed: _submitting
+                                          ? null
+                                          : () async {
                                         // Validasi form sebelum submit
                                         if (_formKey.currentState!.validate()) {
-                                          // Kirim data ke backend dengan POST request
-                                          final response = await request.postJson(
-                                            "http://localhost:8000/create-flutter/",
-                                            jsonEncode({
-                                              "name": _name,
-                                              "price": _price,
-                                              "category": _category,
-                                              "stock": _stock,
-                                              "thumbnail": _thumbnail,
-                                              "is_featured": _isFeatured,
-                                              "description": _description,
-                                            }),
-                                          );
+                                          setState(() => _submitting = true);
+                                          try {
+                                            // Tentukan URL berdasarkan mode (create/edit)
+                                            final url = widget.isEdit && widget.initial != null
+                                                ? "http://localhost:8000/merchandise/edit/${widget.initial!.pk}/"
+                                                : "http://localhost:8000/merchandise/create/";
 
-                                          if (context.mounted) {
-                                            if (response['status'] ==
-                                                'success') {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    "Merchandise berhasil disimpan!",
-                                                  ),
+                                            // Kirim sebagai form-encoded agar sesuai dengan request.POST di Django
+                                            final response = await request.post(
+                                              url,
+                                              {
+                                                "name": _name,
+                                                "price": _price.toString(),
+                                                "category": _category ?? '',
+                                                "stock": _stock.toString(),
+                                                "thumbnail": _thumbnail,
+                                                // Django view membaca string 'true'/'false'
+                                                "is_featured": _isFeatured.toString(),
+                                                // Simpan line break sebagai <br> agar konsisten dengan server-side replace
+                                                "description": _description.replaceAll('\n', '<br>'),
+                                              },
+                                            );
+
+                                            if (!mounted) return;
+                                            final success = (response is Map &&
+                                                    (response['status'] == 'success' ||
+                                                        response['message'] != null)) ||
+                                                response != null;
+
+                                            if (success) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(widget.isEdit
+                                                      ? "Merchandise berhasil diperbarui!"
+                                                      : "Merchandise berhasil disimpan!"),
                                                 ),
                                               );
-                                              Navigator.pushReplacement(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      MerchandiseEntryListPage(),
-                                                ),
-                                              );
+                                              // Kembali ke list dengan flag sukses agar list refresh
+                                              Navigator.pop(context, true);
                                             } else {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
+                                              ScaffoldMessenger.of(context).showSnackBar(
                                                 const SnackBar(
                                                   content: Text(
                                                     "Terjadi kesalahan, silakan coba lagi.",
@@ -500,13 +537,31 @@ class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
                                                 ),
                                               );
                                             }
+                                          } catch (e) {
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text("Gagal menyimpan: $e"),
+                                              ),
+                                            );
+                                          } finally {
+                                            if (mounted) setState(() => _submitting = false);
                                           }
                                         }
                                       },
-                                      child: const Text(
-                                        "Simpan",
-                                        style: TextStyle(color: Colors.white),
-                                      ),
+                                      child: _submitting
+                                          ? const SizedBox(
+                                              height: 20,
+                                              width: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor: AlwaysStoppedAnimation(Colors.white),
+                                              ),
+                                            )
+                                          : const Text(
+                                              "Simpan",
+                                              style: TextStyle(color: Colors.white),
+                                            ),
                                     ),
                                   ),
                                 ),

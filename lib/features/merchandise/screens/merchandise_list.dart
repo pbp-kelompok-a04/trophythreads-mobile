@@ -6,17 +6,13 @@ import '../screens/merchandise_form.dart';
 import '../widgets/merchandise_entry_card.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:trophythreads_mobile/features/review/services/review_service.dart';
 
 // Widget StatefulWidget untuk halaman daftar merchandise
 class MerchandiseEntryListPage extends StatefulWidget {
-  final String? currentUserId; // ID user yang sedang login (opsional)
-  final String? currentUserRole; // Role user (contoh: 'seller')
-
   // Constructor dengan parameter opsional untuk user ID dan role
   const MerchandiseEntryListPage({
     Key? key,
-    this.currentUserId,
-    this.currentUserRole,
   }) : super(key: key);
 
   // Method untuk membuat state dari widget ini
@@ -27,6 +23,65 @@ class MerchandiseEntryListPage extends StatefulWidget {
 
 // State class untuk MerchandiseEntryListPage
 class _MerchandiseEntryListPageState extends State<MerchandiseEntryListPage> {
+  late Future<List<MerchandiseEntry>> _futureMerchandise;
+  Key _futureBuilderKey = UniqueKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _initFuture();
+  }
+
+  void _initFuture() {
+    final request = context.read<CookieRequest>();
+    _futureMerchandise = fetchMerchandise(request);
+    // Force rebuild FutureBuilder dengan UniqueKey
+    setState(() {
+      _futureBuilderKey = UniqueKey();
+    });
+  }
+
+  // Method untuk increment views saat user masuk ke detail page
+  Future<void> _incrementViews(CookieRequest request, String productId) async {
+    final String url = 'http://localhost:8000/merchandise/views/increment/$productId/';
+
+    try {
+      debugPrint('Attempting to increment views at: $url');
+      final response = await request.post(url, {});
+      debugPrint('Increment views response type: ${response.runtimeType}');
+      debugPrint('Increment views response: $response');
+      
+      if (response is Map && response.containsKey('status')) {
+        debugPrint('Success: ${response['status']}');
+      }
+    } catch (e, st) {
+      debugPrint('Error incrementing views: $e');
+      debugPrint('Stack trace: $st');
+    }
+  }
+
+  // Ambil average rating untuk sebuah produk dari ReviewService
+  Future<double> _fetchAverageRating(
+      CookieRequest request, String productId) async {
+    try {
+      final service = ReviewService(request);
+      final reviewEntry = await service.fetchReviews(
+        productId: productId,
+        stars: 'all',
+      );
+
+      if (reviewEntry.total == 0) return 0.0;
+      int sum = 0;
+      reviewEntry.counts.forEach((star, count) {
+        sum += int.parse(star) * count;
+      });
+      return sum / reviewEntry.total;
+    } catch (e) {
+      debugPrint('fetchAverageRating error: $e');
+      return 0.0;
+    }
+  }
+
   // Method async untuk mengambil data merchandise dari server
   Future<List<MerchandiseEntry>> fetchMerchandise(CookieRequest request) async {
     try {
@@ -81,7 +136,36 @@ class _MerchandiseEntryListPageState extends State<MerchandiseEntryListPage> {
       for (var d in rawList) {
         if (d != null) {
           // Jika item tidak null, konversi ke MerchandiseEntry dan tambahkan ke list
-          listMerchandise.add(MerchandiseEntry.fromJson(d));
+          try {
+            // Bentuk 1: JSON default Django serializer -> memiliki key 'fields'
+            if (d is Map && d.containsKey('fields')) {
+              listMerchandise.add(MerchandiseEntry.fromJson(Map<String, dynamic>.from(d)));
+            } else if (d is Map && (d.containsKey('id') || d.containsKey('pk'))) {
+              // Bentuk 2: JSON custom flat -> ubah ke bentuk serializer
+              final map = Map<String, dynamic>.from(d);
+              final pk = (map['pk'] ?? map['id']).toString();
+              final converted = {
+                'model': 'merchandiseApp.merchandise',
+                'pk': pk,
+                'fields': {
+                  'user': map['user'],
+                  'name': map['name'] ?? '',
+                  'price': map['price'] ?? 0,
+                  'category': map['category'] ?? 'others',
+                  'stock': map['stock'] ?? 0,
+                  'thumbnail': map['thumbnail'] ?? '',
+                  'description': map['description'] ?? '',
+                  'product_views': map['product_views'] ?? 0,
+                  'is_featured': map['is_featured'] ?? false,
+                },
+              };
+              listMerchandise.add(MerchandiseEntry.fromJson(Map<String, dynamic>.from(converted)));
+            } else {
+              debugPrint('Skipping unknown item shape: $d');
+            }
+          } catch (e) {
+            debugPrint('Error parsing item: $e');
+          }
         } else {
           // Jika item null, skip dan cetak peringatan
           debugPrint('Skipping non-map item: $d');
@@ -102,8 +186,11 @@ class _MerchandiseEntryListPageState extends State<MerchandiseEntryListPage> {
   Widget build(BuildContext context) {
     // Mengambil CookieRequest dari Provider untuk autentikasi
     final request = context.watch<CookieRequest>();
+    // Ambil user info dari jsonData (sama seperti forum)
+    final userRole = request.jsonData['role']?.toString();
+    final userId = request.jsonData['id']?.toString();
     // Mengecek apakah user adalah seller
-    final isSeller = widget.currentUserRole == 'seller';
+    final isSeller = userRole == 'seller';
 
     // Mengembalikan widget Scaffold sebagai struktur utama halaman
     return Scaffold(
@@ -115,7 +202,8 @@ class _MerchandiseEntryListPageState extends State<MerchandiseEntryListPage> {
       ),
       // Body menggunakan FutureBuilder untuk menangani async data
       body: FutureBuilder<List<MerchandiseEntry>>(
-        future: fetchMerchandise(request), // Memanggil method fetch data
+        key: _futureBuilderKey,
+        future: _futureMerchandise, // Menggunakan future yang sudah disimpan
         builder: (context, snapshot) {
           // 1) State Loading: tampilkan loading indicator
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -174,8 +262,10 @@ class _MerchandiseEntryListPageState extends State<MerchandiseEntryListPage> {
                     // Tombol untuk mencoba ulang
                     ElevatedButton.icon(
                       onPressed: () {
-                        // Trigger rebuild agar FutureBuilder memanggil ulang fetch
-                        setState(() {});
+                        // Reload data dari server
+                        setState(() {
+                          _initFuture();
+                        });
                       },
                       icon: const Icon(Icons.refresh),
                       label: const Text('Try Again'),
@@ -219,9 +309,8 @@ class _MerchandiseEntryListPageState extends State<MerchandiseEntryListPage> {
           return RefreshIndicator(
             // Callback saat user melakukan pull-to-refresh
             onRefresh: () async {
-              // Cara sederhana refresh: rebuild agar FutureBuilder memanggil fetch lagi
-              setState(() {});
-              // Delay kecil agar refresh indicator terlihat sebentar
+              // Reload data dari server
+              _initFuture();
               await Future.delayed(const Duration(milliseconds: 300));
             },
             // CustomScrollView untuk scrolling yang lebih fleksibel dengan slivers
@@ -313,31 +402,71 @@ class _MerchandiseEntryListPageState extends State<MerchandiseEntryListPage> {
                         ),
                         // Tombol create (hanya tampil untuk seller)
                         if (isSeller)
-                          ElevatedButton(
-                            onPressed: () {
-                              // Navigasi ke halaman form merchandise
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const MerchandiseFormPage(),
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color.fromARGB(255, 255, 121, 100),
+                                  Color.fromARGB(255, 173, 26, 0),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color.fromARGB(255, 231, 39, 9)
+                                      .withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
                                 ),
-                              );
-                            },
-                            // Style tombol
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 10,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  8,
-                                ), // Sudut melengkung
-                              ),
-                              elevation: 2, // Bayangan tombol
+                              ],
                             ),
-                            child: const Text('+ Create'),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () async {
+                                  // Navigasi ke halaman form merchandise
+                                  final created = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const MerchandiseFormPage(),
+                                    ),
+                                  );
+                                  // Refresh list jika form sukses menyimpan
+                                  if (created == true) {
+                                    _initFuture();
+                                  }
+                                },
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 10,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: const [
+                                      Icon(
+                                        Icons.add_circle_outline,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'Create Merchandise',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                       ],
                     ),
@@ -364,33 +493,93 @@ class _MerchandiseEntryListPageState extends State<MerchandiseEntryListPage> {
                       // Ambil data merchandise di index ini
                       final m = data[index];
                       // Wrap card dengan GestureDetector untuk handle tap
-                      return GestureDetector(
-                        onTap: () async {
-                          // Navigasi ke halaman detail merchandise
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  ProductDetailPage(merchandise: m),
+                      return FutureBuilder<double>(
+                        future: _fetchAverageRating(request, m.pk),
+                        builder: (context, ratingSnap) {
+                          final avg = ratingSnap.data ?? 0.0;
+                          return GestureDetector(
+                            onTap: () async {
+                              // Increment views saat user masuk ke detail page
+                              _incrementViews(request, m.pk);
+                              
+                              // Navigasi ke halaman detail merchandise
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      ProductDetailPage(merchandise: m),
+                                ),
+                              );
+                              // Reload data setelah kembali dari detail page
+                              _initFuture();
+                            },
+                            // Widget card merchandise
+                            child: MerchandiseEntryCard(
+                              merchandise: m,
+                              currentUserId: userId,
+                              currentUserRole: userRole,
+                              averageRating: avg,
+                              onEdit: (id) async {
+                                // Buka form dalam mode edit dengan data awal
+                                final updated = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => MerchandiseFormPage(
+                                      initial: m,
+                                      isEdit: true,
+                                    ),
+                                  ),
+                                );
+                                if (updated == true) {
+                                  _initFuture();
+                                }
+                              },
+                              onDelete: (id) async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Delete Merchandise'),
+                                    content: const Text(
+                                        'Are you sure you want to delete this merchandise?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirm == true) {
+                                  try {
+                                    final url = 'http://localhost:8000/merchandise/delete/$id/';
+                                    // CookieRequest tidak memiliki method DELETE di sebagian versi,
+                                    // sehingga kita coba via POST (server @csrf_exempt dapat menyesuaikan)
+                                    final resp = await request.post(url, {});
+                                    if (resp is Map && (resp['message'] != null || resp['status'] == 'success')) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Deleted successfully.')),
+                                      );
+                                      _initFuture();
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Delete failed. Please try again.')),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Delete error: $e')),
+                                    );
+                                  }
+                                }
+                              },
                             ),
                           );
-                          setState(() {});
                         },
-                        // Widget card merchandise
-                        child: MerchandiseEntryCard(
-                          merchandise: m,
-                          onTap: () async {
-                            // Callback saat card di-tap
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    ProductDetailPage(merchandise: m),
-                              ),
-                            );
-                            setState(() {});
-                          },
-                        ),
                       );
                     }, childCount: data.length), // Jumlah item sesuai data
                   ),
