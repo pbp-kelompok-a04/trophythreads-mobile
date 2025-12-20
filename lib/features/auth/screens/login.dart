@@ -334,6 +334,10 @@ class LoginPageState extends State<LoginPage> {
                       if (request.loggedIn) {
                         final userProfile = UserProfile.fromJson(response);
 
+                        // simpan data user untuk profil page
+                        request.jsonData['username'] = userProfile.username;
+                        request.jsonData['role'] = userProfile.role;
+
                         // Set guest status to false for regular login
                         await setGuestStatus(false);
                         await setUserRole(userProfile.role);
