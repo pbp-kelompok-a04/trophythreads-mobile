@@ -3,8 +3,7 @@ import 'package:pbp_django_auth/pbp_django_auth.dart';
 import '../models/cart_entry.dart';
 
 class CartService {
-  // TODO: Ganti dengan URL Django Anda
-  static const String baseUrl = 'http://localhost:8000'; // atau URL deploy Anda
+  static const String baseUrl = 'http://localhost:8000'; 
 
   final CookieRequest request;
 
@@ -296,7 +295,6 @@ class CartService {
   // ============ GET CHECKOUT ITEMS ============
   Future<Map<String, dynamic>> getCheckoutItems() async {
     try {
-      // Gunakan endpoint show_checkout_json yang sudah dimodifikasi
       final response = await request.get('$baseUrl/cart/checkout-json/');
 
       if (response is Map) {

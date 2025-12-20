@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:trophythreads_mobile/features/cart/screens/cart_list.dart';
 import '../models/fav_entry.dart';
 import '../widgets/favorites_card.dart';
 import '../../merchandise/screens/merchandise_list.dart'; // Import merchandise list
@@ -24,12 +25,14 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
   Future<void> _fetchFavorites() async {
     setState(() => isLoading = true);
-    
+
     final request = context.read<CookieRequest>();
-    
+
     try {
-      final response = await request.get('http://localhost:8000/favorites/json/');
-      
+      final response = await request.get(
+        'http://localhost:8000/favorites/json/',
+      );
+
       if (response['status'] == 'ok') {
         final favsItem = FavsItem.fromJson(response);
         setState(() {
@@ -54,20 +57,18 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
   Future<void> _removeFavorite(String favoriteId) async {
     final request = context.read<CookieRequest>();
-    
+
     try {
       final response = await request.post(
         'http://localhost:8000/favorites/remove/',
-        {
-          'favorite_id': favoriteId,
-        },
+        {'favorite_id': favoriteId},
       );
-      
+
       if (response['status'] == 'ok') {
         setState(() {
           favorites.removeWhere((fav) => fav.favoriteId == favoriteId);
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -148,11 +149,16 @@ class _FavoritesPageState extends State<FavoritesPage> {
           padding: const EdgeInsets.only(right: 8.0),
           child: ElevatedButton.icon(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Navigasi ke Cart')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartPage()),
               );
             },
-            icon: const Icon(Icons.shopping_cart, color: Color(0xFFE57373), size: 18),
+            icon: const Icon(
+              Icons.shopping_cart,
+              color: Color(0xFFE57373),
+              size: 18,
+            ),
             label: const Text(
               'My Cart',
               style: TextStyle(
@@ -244,7 +250,10 @@ class _FavoritesPageState extends State<FavoritesPage> {
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFE57373),
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -266,11 +275,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              const Icon(
-                Icons.favorite,
-                color: Color(0xFFE57373),
-                size: 20,
-              ),
+              const Icon(Icons.favorite, color: Color(0xFFE57373), size: 20),
               const SizedBox(width: 8),
               Text(
                 '${favorites.length} Produk Favorit',
@@ -305,7 +310,9 @@ class _FavoritesPageState extends State<FavoritesPage> {
                     // TODO: Navigate ke detail page dengan merchandise data
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Buka detail: ${favorites[index].merchandise.name}'),
+                        content: Text(
+                          'Buka detail: ${favorites[index].merchandise.name}',
+                        ),
                         backgroundColor: const Color(0xFF8B4513),
                       ),
                     );
