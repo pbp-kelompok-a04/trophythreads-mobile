@@ -7,6 +7,9 @@ import 'package:trophythreads_mobile/features/forum/models/forum.dart';
 import 'package:trophythreads_mobile/features/forum/models/comment.dart';
 import 'package:trophythreads_mobile/features/forum/widgets/comment_box.dart';
 import 'package:trophythreads_mobile/features/auth/screens/login.dart';
+import 'package:trophythreads_mobile/bottom_navbar.dart';
+import 'package:trophythreads_mobile/main.dart';
+
 
 const String _BASE_URL = "http://localhost:8000/";
 
@@ -228,10 +231,24 @@ class _ForumDetailState extends State<ForumDetail> {
     );
   }
 
+  void _onItemTapped(int index) {
+    if (index == 0) {
+      Navigator.pop(context);
+      return;
+    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MainScaffold(initialIndex: index),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      bottomNavigationBar: BottomNavbar(currentIndex: 2, onTap: _onItemTapped),
       appBar: AppBar(
         title: const Text('Kembali ke diskusi'),
         centerTitle: false,
