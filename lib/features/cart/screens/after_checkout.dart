@@ -49,14 +49,14 @@ class AfterCheckoutPage extends StatelessWidget {
               children: [
                 InkWell(
                   onTap: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MerchandiseEntryListPage(),
-                      ),
-                    );
-                    // // Navigate back to home or main page
-                    // Navigator.of(context).popUntil((route) => route.isFirst);
+                    // Navigator.pushReplacement(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //     builder: (context) => MerchandiseEntryListPage(),
+                    //   ),
+                    // );
+                    // Navigate back to home or main page
+                    Navigator.of(context).popUntil((route) => route.isFirst);
                   },
                   child: const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 6),
