@@ -109,10 +109,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     // Tentukan host berdasarkan platform
     final host = kIsWeb
-        ? 'http://localhost:8000' // Web menggunakan localhost
+        ? 'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id' // Web menggunakan PWS
         : (Platform.isAndroid
-              ? 'http://10.0.2.2:8000' // Android emulator menggunakan 10.0.2.2
-              : 'http://localhost:8000'); // iOS menggunakan localhost
+              ? 'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id' // Android emulator menggunakan PWS
+              : 'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id'); // iOS menggunakan PWS
     // Gabungkan host dengan thumbnail path
     return '$host$thumbnail';
   }
@@ -144,7 +144,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     try {
       // Kirim GET request ke endpoint check favorite
       final response = await request.get(
-        'http://localhost:8000/favorites/check/${widget.merchandise.pk}/',
+        'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/favorites/check/${widget.merchandise.pk}/',
       );
       if (mounted) {
         setState(() {
@@ -163,7 +163,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final request = context.read<CookieRequest>();
     try {
       // Kirim GET request ke endpoint cart
-      final response = await request.get('http://localhost:8000/cart/json/');
+      final response = await request.get('https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/cart/json/');
       if (response is List && mounted) {
         setState(() => _cartCount = response.length);
       }
@@ -188,7 +188,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       // Jika sudah favorite, lakukan remove
       if (_isFavorite && _favoriteId != null) {
         final response = await request.post(
-          'http://localhost:8000/favorites/remove/',
+          'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/favorites/remove/',
           {'favorite_id': _favoriteId},
         );
         if (response['status'] == 'ok') {
@@ -202,7 +202,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       } else {
         // Jika belum favorite, lakukan add
         final response = await request.post(
-          'http://localhost:8000/favorites/add/',
+          'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/favorites/add/',
           {'merchandise_id': widget.merchandise.pk},
         );
         if (response['status'] == 'ok') {

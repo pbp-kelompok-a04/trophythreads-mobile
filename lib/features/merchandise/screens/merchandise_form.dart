@@ -493,8 +493,8 @@ class _MerchandiseFormPageState extends State<MerchandiseFormPage> {
                                           try {
                                             // Tentukan URL berdasarkan mode (create/edit)
                                             final url = widget.isEdit && widget.initial != null
-                                                ? "http://localhost:8000/merchandise/edit/${widget.initial!.pk}/"
-                                                : "http://localhost:8000/merchandise/create/";
+                                                ? "https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/merchandise/edit/${widget.initial!.pk}/"
+                                                : "https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/merchandise/create/";
 
                                             // Kirim sebagai form-encoded agar sesuai dengan request.POST di Django
                                             final response = await request.post(

@@ -39,7 +39,7 @@ class CommentBox extends StatelessWidget {
             onPressed: () async {
               final request = context.read<CookieRequest>();
               final response = await request.post(
-                "http://localhost:8000/forum/comment/delete/${comment.id}/",
+                "https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/forum/comment/delete/${comment.id}/",
                 {}, 
               );
 
@@ -89,7 +89,7 @@ class CommentBox extends StatelessWidget {
               final request = context.read<CookieRequest>();
               
               final response = await request.postJson(
-                "http://localhost:8000/forum/comment/edit/${comment.id}/",
+                "https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/forum/comment/edit/${comment.id}/",
                 jsonEncode({'content': newContent}),
               );
 

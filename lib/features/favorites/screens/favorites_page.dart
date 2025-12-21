@@ -30,7 +30,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
     try {
       final response = await request.get(
-        'http://localhost:8000/favorites/json/',
+        'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/favorites/json/',
       );
 
       if (response['status'] == 'ok') {
@@ -60,7 +60,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
     try {
       final response = await request.post(
-        'http://localhost:8000/favorites/remove/',
+        'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/favorites/remove/',
         {'favorite_id': favoriteId},
       );
 

@@ -2,7 +2,7 @@ import 'package:pbp_django_auth/pbp_django_auth.dart';
 
 class FavoritesService {
   // Ganti dengan URL backend Anda
-  static const String baseUrl = 'http://localhost:8000';
+  static const String baseUrl = 'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id';
   
   // Tambah ke favorites
   static Future<Map<String, dynamic>> addFavorite(
