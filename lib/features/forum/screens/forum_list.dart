@@ -173,29 +173,32 @@ class _ForumListPageState extends State<ForumListPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Filter Buttons Row
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _buildFilterButton(
-                              'Semua Thread',
-                              _SelectedFilter.all,
-                              context,
-                            ),
-                            _buildFilterButton(
-                              'Official',
-                              _SelectedFilter.official,
-                              context,
-                            ),
-                            _buildFilterButton(
-                              'Komunitas',
-                              _SelectedFilter.community,
-                              context,
-                            ),
-                          ],
+                      Expanded( 
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _buildFilterButton(
+                                'Semua Thread',
+                                _SelectedFilter.all,
+                                context,
+                              ),
+                              _buildFilterButton(
+                                'Official',
+                                _SelectedFilter.official,
+                                context,
+                              ),
+                              _buildFilterButton(
+                                'Komunitas',
+                                _SelectedFilter.community,
+                                context,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
+                      
+                      const SizedBox(width: 8), 
 
                       // Create Thread Button
                       ElevatedButton(
@@ -207,21 +210,11 @@ class _ForumListPageState extends State<ForumListPage> {
                           ),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
-                            vertical: 10, 
+                            vertical: 10,
                           ),
                         ),
                         onPressed: () async {
-                          // Check if user is guest
-                          if (await LoginPageState.isGuest()) {
-                            await LoginPageState.canPerformAction(context, 'buat thread');
-                          } else {
-                            if (context.mounted) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const CreateForumPage()),
-                              );
-                            }
-                          }
+                          // ... your existing logic ...
                         },
                         child: const Text(
                           'Buat Thread',
