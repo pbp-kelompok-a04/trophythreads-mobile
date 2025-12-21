@@ -55,7 +55,7 @@ class _MatchFormPageState extends State<MatchFormPage> {
     final request = Provider.of<CookieRequest>(context, listen: false);
     try {
       final response = await request.get(
-        'http://localhost:8000/informasi/json-country/',
+        'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/informasi/json-country/',
       );
       List<Team> loadedTeams = [];
       for (var country in response) {
@@ -682,10 +682,10 @@ class _MatchFormPageState extends State<MatchFormPage> {
                                                 String pathUrl;
                                                 if (widget.match == null) {
                                                   pathUrl =
-                                                      "http://localhost:8000/informasi/create-flutter/";
+                                                      "https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/informasi/create-flutter/";
                                                 } else {
                                                   pathUrl =
-                                                      "http://localhost:8000/informasi/edit-flutter/${widget.match!.id}/";
+                                                      "https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/informasi/edit-flutter/${widget.match!.id}/";
                                                 }
                                                 
                                                 final response = await request.postJson(

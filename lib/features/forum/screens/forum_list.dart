@@ -12,7 +12,7 @@ enum _SelectedFilter { all, official, community }
 class ForumListPage extends StatefulWidget {
   // TODO: Set your base URL here
   static const String baseUrl =
-      "http://localhost:8000/"; // 10.0.2.2 for Android emulator
+      "https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/"; // 10.0.2.2 for Android emulator
 
   const ForumListPage({super.key});
 
