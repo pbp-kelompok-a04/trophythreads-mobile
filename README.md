@@ -6,7 +6,7 @@ Tautan APK &rarr; [Download APK](https://app.bitrise.io/app/c7280a8a-874f-4ab0-9
 Design figma &rarr; https://www.figma.com/design/PEssCNAbaWalAbCoNzPkmj/TrophyThreads?node-id=0-1&t=w2I8nZc6TkE6BZre-1 \
 Timeline & Planning &rarr; https://docs.google.com/spreadsheets/d/1Xz-XjHQy6vWqbUHOe2V1ny_dZjjJ8BDWaOCkafkrsaE/edit?usp=sharing
 
-Video Promosi: https://youtu.be/vU7RYHt24gw?si=bLpwBP_dWothwGVx
+Video Promosi -> https://youtu.be/GWf_Sm8AJ-c?si=pizAM3E-oKnKzIZH
 
 ## Nama Anggota Kelompok
 - 2406435830 - Samuel Marcelino Tindaon
