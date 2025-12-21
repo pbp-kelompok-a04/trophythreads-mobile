@@ -38,6 +38,7 @@ class MyApp extends StatelessWidget {
             onError: Colors.white,
           ),
         ),
+        debugShowCheckedModeBanner: false,
         home: LoginPage(),
       ),
     );
