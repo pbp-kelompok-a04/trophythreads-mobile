@@ -3,7 +3,7 @@ import 'package:pbp_django_auth/pbp_django_auth.dart';
 import '../models/cart_entry.dart';
 
 class CartService {
-  static const String baseUrl = 'http://localhost:8000'; 
+  static const String baseUrl = 'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id'; 
 
   final CookieRequest request;
 

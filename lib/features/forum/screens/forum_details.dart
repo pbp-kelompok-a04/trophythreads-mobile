@@ -11,7 +11,7 @@ import 'package:trophythreads_mobile/bottom_navbar.dart';
 import 'package:trophythreads_mobile/main.dart';
 
 
-const String _BASE_URL = "http://localhost:8000/";
+const String _BASE_URL = "https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/";
 
 class ForumDetail extends StatefulWidget {
   final String threadId;

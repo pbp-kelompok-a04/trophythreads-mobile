@@ -259,7 +259,7 @@ class ForumBox extends StatelessWidget {
           TextButton(
             onPressed: () async {
               final response = await request.postJson(
-                "http://localhost:8000/forum/delete/${forum.id}/",
+                "https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/forum/delete/${forum.id}/",
                 jsonEncode({}),
               );
 

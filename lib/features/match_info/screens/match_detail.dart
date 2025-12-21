@@ -61,7 +61,7 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
   Future<void> _refreshMatchData() async {
     final request = context.read<CookieRequest>();
     final response = await request.get(
-      'http://localhost:8000/informasi/json/${_currentMatch.id}/',
+      'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/informasi/json/${_currentMatch.id}/',
     );
     if (mounted) {
       setState(() {
@@ -165,7 +165,7 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(2.0),
                                       child: Image.network(
-                                        'http://localhost:8000/informasi/proxy-image/?url=${Uri.encodeComponent(_currentMatch.homeTeam.flag)}',
+                                        'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/informasi/proxy-image/?url=${Uri.encodeComponent(_currentMatch.homeTeam.flag)}',
                                         fit: BoxFit.cover,
                                         errorBuilder:
                                             (context, error, stackTrace) =>
@@ -221,7 +221,7 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(2.0),
                                       child: Image.network(
-                                        'http://localhost:8000/informasi/proxy-image/?url=${Uri.encodeComponent(_currentMatch.awayTeam.flag)}',
+                                        'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/informasi/proxy-image/?url=${Uri.encodeComponent(_currentMatch.awayTeam.flag)}',
                                         fit: BoxFit.cover,
                                         errorBuilder:
                                             (context, error, stackTrace) =>
@@ -342,7 +342,7 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => ForumListPage()),
+                      MaterialPageRoute(builder: (context) => const MainScaffold(initialIndex: 2)),
                     );
                   },
                   style: OutlinedButton.styleFrom(

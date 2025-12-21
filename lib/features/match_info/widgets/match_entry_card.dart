@@ -96,7 +96,7 @@ class _MatchEntryCardState extends State<MatchEntryCard> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(2.0),
                             child: Image.network(
-                              'http://localhost:8000/informasi/proxy-image/?url=${Uri.encodeComponent(widget.match.homeTeam.flag)}',
+                              'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/informasi/proxy-image/?url=${Uri.encodeComponent(widget.match.homeTeam.flag)}',
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) =>
                                   Container(
@@ -148,7 +148,7 @@ class _MatchEntryCardState extends State<MatchEntryCard> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(2.0),
                             child: Image.network(
-                              'http://localhost:8000/informasi/proxy-image/?url=${Uri.encodeComponent(widget.match.awayTeam.flag)}',
+                              'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/informasi/proxy-image/?url=${Uri.encodeComponent(widget.match.awayTeam.flag)}',
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) =>
                                   Container(

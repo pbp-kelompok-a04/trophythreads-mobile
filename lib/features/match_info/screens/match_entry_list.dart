@@ -37,7 +37,7 @@ class _MatchEntryListPageState extends State<MatchEntryListPage> {
 
     try {
       final response = await request.get(
-        'http://localhost:8000/informasi/json/',
+        'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/informasi/json/',
       );
       List<MatchEntry> listMatch = [];
       for (var d in response) {

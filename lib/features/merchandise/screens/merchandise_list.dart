@@ -43,7 +43,7 @@ class _MerchandiseEntryListPageState extends State<MerchandiseEntryListPage> {
 
   // Method untuk increment views saat user masuk ke detail page
   Future<void> _incrementViews(CookieRequest request, String productId) async {
-    final String url = 'http://localhost:8000/merchandise/views/increment/$productId/';
+    final String url = 'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/merchandise/views/increment/$productId/';
 
     try {
       debugPrint('Attempting to increment views at: $url');
@@ -86,7 +86,7 @@ class _MerchandiseEntryListPageState extends State<MerchandiseEntryListPage> {
   Future<List<MerchandiseEntry>> fetchMerchandise(CookieRequest request) async {
     try {
       // URL endpoint untuk mengambil data merchandise dalam format JSON
-      final url = 'http://localhost:8000/merchandise/json/';
+      final url = 'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/merchandise/json/';
 
       // Melakukan HTTP GET request ke server
       final response = await request.get(url);
@@ -556,7 +556,7 @@ class _MerchandiseEntryListPageState extends State<MerchandiseEntryListPage> {
 
                                 if (confirm == true) {
                                   try {
-                                    final url = 'http://localhost:8000/merchandise/delete/$id/';
+                                    final url = 'https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/merchandise/delete/$id/';
                                     // CookieRequest tidak memiliki method DELETE di sebagian versi,
                                     // sehingga kita coba via POST (server @csrf_exempt dapat menyesuaikan)
                                     final resp = await request.post(url, {});

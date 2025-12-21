@@ -68,7 +68,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       // Jika user biasa, logout dari server
       final response = await request.logout(
-        "http://localhost:8000/auth/logout/",
+        "https://samuel-marcelino-trophythreads.pbp.cs.ui.ac.id/auth/logout/",
       );
 
       // Clear SharedPreferences
