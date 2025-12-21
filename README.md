@@ -93,6 +93,21 @@ Trophy Threads adalah aplikasi yang dirancang untuk para penggemar sepak bola ag
 - Menambahkan, edit, dan delete informasi pertandingan sepak bola.
 - Memantau aktivitas forum.
 
+## Akun Testing
+
+*User*
+- username: TestUser
+- password: trophythreads
+
+*Seller*
+- username: TestSeller
+- password: trophythreads
+
+*Admin* 
+- (bukan superuser, untuk mengelola info pertandingan)
+- username: TestAdmin
+- password: trophythreads
+
 ## Proses Integrasi
 *Keperluan Aplikasi*
    - Aplikasi membutuhkan data user, produk, forum, dan informasi pertandingan yang disediakan oleh web. Kami menggunakan format data JSON sebagai bentuk data yang dikomunikasikan antar aplikasi dan server. Aplikasi akan menyesuaikan dengan endpoint yang sudah ada pada web yang sudah dibuat. 
