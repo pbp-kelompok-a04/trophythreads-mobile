@@ -103,3 +103,4 @@ Trophy Threads adalah aplikasi yang dirancang untuk para penggemar sepak bola ag
 
 *Deployment*
    - Melakukan Flutter deployment dan konfigurasi CI/CD menggunakan GitHub actions & Bitrise.
+
