@@ -214,7 +214,17 @@ class _ForumListPageState extends State<ForumListPage> {
                           ),
                         ),
                         onPressed: () async {
-                          // ... your existing logic ...
+                          // Check if user is guest
+                          if (await LoginPageState.isGuest()) {
+                            await LoginPageState.canPerformAction(context, 'buat thread');
+                          } else {
+                            if (context.mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const CreateForumPage()),
+                              );
+                            }
+                          }
                         },
                         child: const Text(
                           'Buat Thread',
